@@ -1,0 +1,3 @@
+Erste öffentliche Version.
+
+Musik-Zeitleisten-Spiel zum Herumreichen mit deiner eigenen Subsonic-Bibliothek: Rate, ob der Rätselsong älter oder neuer ist als die auf deiner Zeitleiste. Mit Token, Wetten, Schwierigkeitsstufen und Wiedergabe im Sperrbildschirm.

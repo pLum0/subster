@@ -1,4 +1,4 @@
-# Subster
+# <img src="public/icon.svg" alt="Subster icon" width="42" align="top"> Subster
 
 A backend-free, smartphone-only **music timeline party game** that plays **your own music** from a
 [Subsonic](https://www.subsonic.org/)-compatible server (Navidrome, Airsonic, Gonic, …). A random

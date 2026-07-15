@@ -1,0 +1,21 @@
+Subster ist ein Musik-Partyspiel zum Herumreichen — mit deiner eigenen Musiksammlung. Ein Rätselsong spielt blind: kein Titel, kein Interpret, kein Jahr. Deine Aufgabe: Ordne ihn auf deiner Zeitleiste ein — ist er älter oder neuer als deine bisherigen Songs? Richtig geraten? Karte behalten. Wer zuerst 10 Karten hat, gewinnt.
+
+Das Prinzip kennt man vom Kartenspiel Hitster — aber ohne physische Karten, ohne Konten und ohne Backend: Die App spricht direkt mit deinem Subsonic-kompatiblen Musikserver (Navidrome, Airsonic, Gonic, …).
+
+<b>Funktionen</b>
+
+<ul>
+<li>Spielt <b>deine</b> Musik — verbindet sich mit jedem Subsonic-kompatiblen Server</li>
+<li>Cleverer Kartenstapel: Songs werden nach echter Bekanntheit gewichtet (Deezer-Popularität + mitgelieferter Kanon aus Chart-Hits), damit sich das Deck fair anfühlt</li>
+<li>Original-Erscheinungsjahre über MusicBrainz — ein Remaster von 2015 zählt trotzdem als Original</li>
+<li>Token: Song überspringen, gegen die Platzierung anderer wetten und die Karte stehlen, oder Bonus für das Nennen von Titel + Interpret</li>
+<li>Schwierigkeitsstufen, Jahresbereich- und Genre-Filter, Clip-Längen</li>
+<li>Spielt bei ausgeschaltetem Bildschirm weiter (Sperrbildschirm-Steuerung)</li>
+<li>Deutsche und englische Oberfläche</li>
+</ul>
+
+<b>Privatsphäre</b>
+
+Keine Konten, keine Werbung, kein Tracking. Für Bekanntheit und Jahreszahlen werden nur Interpret/Titel von Bibliothekssongs an die öffentlichen Deezer- und MusicBrainz-APIs geschickt — nichts über dich oder deinen Server.
+
+Zum Spielen brauchst du einen Subsonic-kompatiblen Musikserver. Deine Zugangsdaten verlassen das Gerät nie und werden nur als gesalzener Token gespeichert.

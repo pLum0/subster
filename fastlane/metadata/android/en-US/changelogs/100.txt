@@ -1,0 +1,3 @@
+First public release.
+
+Pass-and-play music timeline game for your own Subsonic library: guess whether the mystery song is older or newer than the ones on your timeline. Tokens, challenges, difficulty presets, and lock-screen playback included.
