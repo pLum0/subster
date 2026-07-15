@@ -1,0 +1,29 @@
+# Dependencies
+node_modules
+
+# Build output
+dist
+dev-dist
+*.local
+
+# Editor / OS
+.DS_Store
+.vite
+.idea
+.vscode
+
+# Capacitor / Android generated + build artifacts
+android/.gradle
+android/build
+android/app/build
+android/app/src/main/assets/public
+android/app/src/main/assets/capacitor.config.json
+android/app/src/main/res/xml/config.xml
+android/capacitor.settings.gradle
+android/local.properties
+android/.idea
+*.keystore
+*.jks
+
+# TypeScript incremental build info
+*.tsbuildinfo

@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="bg" cx="0.5" cy="0.42" r="0.8">
+      <stop offset="0" stop-color="#301a45" />
+      <stop offset="1" stop-color="#140b20" />
+    </radialGradient>
+    <radialGradient id="disc" cx="0.4" cy="0.36" r="0.75">
+      <stop offset="0" stop-color="#f0abfc" />
+      <stop offset="0.55" stop-color="#c026d3" />
+      <stop offset="1" stop-color="#7e1088" />
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)" />
+
+  <!-- vinyl record -->
+  <circle cx="256" cy="256" r="150" fill="url(#disc)" />
+  <g fill="none" stroke="#2a0838" stroke-opacity="0.35" stroke-width="3">
+    <circle cx="256" cy="256" r="124" />
+    <circle cx="256" cy="256" r="104" />
+    <circle cx="256" cy="256" r="84" />
+  </g>
+  <path d="M256 116 A140 140 0 0 1 396 256" fill="none" stroke="#ffffff" stroke-opacity="0.18" stroke-width="9" stroke-linecap="round" />
+
+  <!-- center label -->
+  <circle cx="256" cy="256" r="68" fill="#f7c3ff" />
+
+  <!-- submarine emblem on the label (a nod to Subsonic) -->
+  <g fill="#7e1088">
+    <path d="M221 260 L199 244 L199 276 Z" />
+    <rect x="215" y="244" width="92" height="30" rx="15" />
+    <rect x="249" y="224" width="28" height="22" rx="8" />
+    <rect x="256" y="211" width="10" height="16" rx="5" />
+  </g>
+  <circle cx="243" cy="259" r="6.5" fill="#f7c3ff" />
+</svg>
