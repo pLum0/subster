@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="fastlane/metadata/android/en-US/images/featureGraphic.png" alt="Subster — guess the year, build your timeline" width="720">
+</p>
+
 # <img src="public/icon.svg" alt="Subster icon" width="42" align="top"> Subster
 
 A backend-free, smartphone-only **music timeline party game** that plays **your own music** from a
@@ -7,6 +11,15 @@ songs already there. Guess right, keep the card. First to 10 cards wins.
 
 No physical cards, no accounts, **no backend** — the app talks directly to your server from the
 browser (or an Android WebView).
+
+## Screenshots
+
+<p align="center">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/1_home.png" alt="Home screen" width="23%">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/2_newgame.png" alt="New game setup" width="23%">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/3_placing.png" alt="Placing a song on the timeline" width="23%">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/4_reveal.png" alt="Song reveal" width="23%">
+</p>
 
 ## Status
 
