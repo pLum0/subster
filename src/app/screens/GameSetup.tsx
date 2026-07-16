@@ -233,30 +233,6 @@ export function GameSetup() {
             />
           </label>
 
-          {/* Difficulty is Deezer-rank based, so it has no effect while online
-              metadata is off — shown greyed-out rather than hidden. */}
-          <div className={`flex flex-col gap-1.5 ${onlineMeta ? '' : 'pointer-events-none opacity-40'}`}>
-            <span>{t.setup.difficulty}</span>
-            <div className="grid grid-cols-3 gap-2">
-              {difficultyOptions.map(([value, label, hint]) => (
-                <button
-                  key={value}
-                  disabled={!onlineMeta}
-                  onClick={() => setDifficulty(value)}
-                  className={`flex flex-col items-center rounded-xl border px-2 py-2.5 text-center ${
-                    difficulty === value
-                      ? 'border-brand-500 bg-brand-500/15'
-                      : 'border-slate-700 bg-slate-800'
-                  }`}
-                >
-                  <span className="font-semibold">{label}</span>
-                  <span className="text-[10px] text-slate-500">{hint}</span>
-                </button>
-              ))}
-            </div>
-            <span className="text-xs text-slate-500">{t.setup.popularityNote}</span>
-          </div>
-
           <div className="flex items-center justify-between gap-3">
             <button type="button" className="flex-1 text-left" onClick={() => setOnlineMeta((v) => !v)}>
               {t.setup.onlineMeta}
@@ -279,6 +255,30 @@ export function GameSetup() {
                 }`}
               />
             </button>
+          </div>
+
+          {/* Difficulty is Deezer-rank based, so it has no effect while online
+              metadata is off — shown greyed-out rather than hidden. */}
+          <div className={`flex flex-col gap-1.5 ${onlineMeta ? '' : 'pointer-events-none opacity-40'}`}>
+            <span>{t.setup.difficulty}</span>
+            <div className="grid grid-cols-3 gap-2">
+              {difficultyOptions.map(([value, label, hint]) => (
+                <button
+                  key={value}
+                  disabled={!onlineMeta}
+                  onClick={() => setDifficulty(value)}
+                  className={`flex flex-col items-center rounded-xl border px-2 py-2.5 text-center ${
+                    difficulty === value
+                      ? 'border-brand-500 bg-brand-500/15'
+                      : 'border-slate-700 bg-slate-800'
+                  }`}
+                >
+                  <span className="font-semibold">{label}</span>
+                  <span className="text-[10px] text-slate-500">{hint}</span>
+                </button>
+              ))}
+            </div>
+            <span className="text-xs text-slate-500">{t.setup.popularityNote}</span>
           </div>
 
           <div className="flex items-center justify-between gap-3">
