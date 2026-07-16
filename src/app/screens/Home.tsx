@@ -7,6 +7,11 @@ import { useT, useLocaleStore, LANGUAGES } from '../../i18n'
 export function Home() {
   const navigate = useNavigate()
   const server = useConfigStore((s) => s.server)
+  const effective = useConfigStore((s) => s.effective)
+  // The reachability check picked the LAN address — show it, so the local-
+  // address feature is verifiable at a glance.
+  const viaLan =
+    !!server?.localBaseUrl && !!effective && effective.baseUrl === server.localBaseUrl
   const t = useT()
   const { locale, setLocale } = useLocaleStore()
 
@@ -44,7 +49,9 @@ export function Home() {
             {server ? t.home.newGame : t.home.connectServer}
           </Button>
           <Button variant="ghost" onClick={() => navigate('/server')}>
-            {server ? t.home.serverLabel(server.name || server.baseUrl) : t.home.serverSettings}
+            {server
+              ? t.home.serverLabel(server.name || server.baseUrl) + (viaLan ? ' · LAN' : '')
+              : t.home.serverSettings}
           </Button>
         </div>
       </div>
