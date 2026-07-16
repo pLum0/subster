@@ -130,13 +130,17 @@ describe('turns and winning', () => {
 })
 
 describe('tokens', () => {
-  it('SKIP spends a token and redraws for the same player', () => {
+  it('SKIP reveals the skipped song, then NEXT_TURN redraws for the same player', () => {
     const deck = [song('a', 1990), song('b', 1980), song('c', 1995), song('d', 2000)]
     let state = start(deck, settings, 2, 2)
     state = reducer(state, { type: 'SKIP' })
-    expect(state.players[0]!.tokens).toBe(1)
-    expect(state.turn.activePlayerIndex).toBe(0)
-    expect(state.turn.song).toEqual(deck[3])
+    expect(state.players[0]!.tokens).toBe(1) // token spent
+    expect(state.phase).toBe('revealed') // skipped song shown first
+    expect(state.turn.lastResult).toBe('skipped')
+    expect(state.turn.song).toEqual(deck[2]) // still the skipped song
+    state = reducer(state, { type: 'NEXT_TURN' })
+    expect(state.turn.activePlayerIndex).toBe(0) // same player
+    expect(state.turn.song).toEqual(deck[3]) // fresh mystery
     expect(state.phase).toBe('placing')
   })
 

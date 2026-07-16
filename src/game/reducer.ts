@@ -79,14 +79,15 @@ export function reducer(state: GameState, action: GameAction): GameState {
     }
 
     case 'SKIP': {
-      // Spend a token to discard the current song and draw a new one, same turn.
+      // Spend a token to skip the current song. It's revealed first (so players
+      // see what it was), then NEXT_TURN draws a fresh one for the same player.
       if (state.phase !== 'placing') return state
       const idx = state.turn.activePlayerIndex
       if ((state.players[idx]?.tokens ?? 0) < 1) return state
       const players = state.players.map((p, i) =>
         i === idx ? { ...p, tokens: p.tokens - 1 } : p,
       )
-      return drawNext({ ...state, players })
+      return { ...state, players, phase: 'revealed', turn: { ...state.turn, lastResult: 'skipped' } }
     }
 
     case 'PLACE': {
@@ -247,6 +248,8 @@ export function reducer(state: GameState, action: GameAction): GameState {
       if (state.phase === 'gameover') return state
       // A win was decided on the just-revealed card: end the game now.
       if (state.winnerId) return { ...state, phase: 'gameover' }
+      // A skipped song keeps the same player; just draw a fresh mystery.
+      if (state.turn.lastResult === 'skipped') return drawNext(state)
       const activePlayerIndex = (state.turn.activePlayerIndex + 1) % state.players.length
       return drawNext({ ...state, turn: { ...state.turn, activePlayerIndex } })
     }

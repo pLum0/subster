@@ -87,6 +87,7 @@ export const de: Dict = {
     correct: '✓ Richtig!',
     stole: (name: string) => `✗ Falsch — ${name} schnappt sich die Karte!`,
     discarded: '✗ Knapp daneben — Karte verworfen',
+    skipped: '⏭ Übersprungen — das war es',
     namedOn: '✓ Titel + Interpret genannt (+1 Token)',
     namedOff: (name: string) => `🎤 Hat ${name} Titel + Interpret genannt?`,
     nextPlayer: 'Nächster Spieler →',
@@ -113,6 +114,7 @@ export const de: Dict = {
     winner: 'Sieger',
     cards: (n: number) => `${n} Karten`,
     rematch: 'Revanche',
+    playAgain: 'Nochmal spielen',
     home: 'Start',
   },
   a11y: {

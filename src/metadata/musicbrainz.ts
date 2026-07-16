@@ -57,7 +57,13 @@ interface IsrcLookup {
   recordings?: Array<{ id: string }>
 }
 interface RecordingSearch {
-  recordings?: Array<{ id: string; score?: number; 'artist-credit'?: Array<{ name?: string }> }>
+  recordings?: Array<{
+    id: string
+    score?: number
+    title?: string
+    disambiguation?: string
+    'artist-credit'?: Array<{ name?: string }>
+  }>
 }
 
 interface RgSearch {
@@ -81,6 +87,18 @@ const normalize = (s: string) =>
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, ' ')
     .trim()
+
+// Drop version/mix/remaster qualifiers — "(Butch Vig Mix)", "[Remastered]",
+// " - Single Version" — so a remix/reissue resolves to the same underlying song.
+const stripQualifiers = (s: string) =>
+  s
+    .replace(/\([^)]*\)|\[[^\]]*\]/g, ' ')
+    .replace(/\s[-–—]\s.*$/, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+// Normalized base title for matching (qualifiers stripped).
+const baseTitle = (s: string) => normalize(stripQualifiers(s))
 
 /**
  * Original year for a recording MBID. Uses the earliest **studio** (non-comp,
@@ -162,35 +180,30 @@ export async function yearFromReleaseGroupSearch(
   return year
 }
 
-interface RecSearchFull {
+interface RecSearchDated {
   recordings?: Array<{
     id: string
     score?: number
     title?: string
     disambiguation?: string
     'artist-credit'?: Array<{ name?: string }>
-    releases?: Array<{
-      date?: string
-      'release-group'?: {
-        'primary-type'?: string
-        'secondary-types'?: string[]
-        'first-release-date'?: string
-      }
-    }>
+    'first-release-date'?: string
   }>
 }
 
 /**
- * The earliest **studio** year across *all* recordings of a song (matched by
- * exact title + artist), taken from one recording search. This is the reliable
- * "original year" lower bound: a file might be a legit later reissue recording
- * (e.g. "Let It Be… Naked", 2003, a real Album — so the per-recording lookup
- * correctly returns 2003), but the *song* first appeared in 1970. The caller
- * takes `min(recordingYear, earliestStudioYear)`, which can only pull the year
- * earlier; constrained to same-title/same-artist studio releases, an earlier
- * match is virtually always the true original, so it never goes wrong-late.
+ * The earliest year across *all* non-live recordings of a song, matched by
+ * artist + **base title** (version/mix/remaster qualifiers stripped), using each
+ * recording's `first-release-date` from a single recording search.
+ *
+ * This is the reliable "original year" lower bound. A file may be tagged with a
+ * much later comp/mix year — e.g. "Smells Like Teen Spirit (Butch Vig Mix)" off
+ * the 2004 compilation *With the Lights Out* — yet the song first appeared in
+ * 1991; stripping the "(Butch Vig Mix)" qualifier lets it match the original
+ * recordings. `min()` can only pull the year earlier, never wrong-late. Live
+ * recordings are excluded (different performance, later date).
  */
-export async function earliestStudioYear(
+export async function earliestRecordingYear(
   artist: string,
   title: string,
 ): Promise<number | undefined> {
@@ -198,34 +211,29 @@ export async function earliestStudioYear(
   const cached = earliestByText.get(key)
   if (cached !== undefined) return cached ?? undefined
 
-  const want = normalize(title)
+  const want = baseTitle(title)
   const wantArtist = artist.toLowerCase()
   const esc = (s: string) => s.replace(/(["\\])/g, '\\$1')
-  const query = `recording:"${esc(title)}" AND artist:"${esc(artist)}"`
+  // Search for the base song, not the specific mix/version.
+  const query = `recording:"${esc(stripQualifiers(title) || title)}" AND artist:"${esc(artist)}"`
   let year: number | undefined
   try {
     const res = await throttled(
       `${MB}/recording?query=${encodeURIComponent(query)}&fmt=json&limit=100`,
     )
     if (!res.ok) return undefined // rate-limited/server error: don't poison the cache
-    const data = (await res.json()) as RecSearchFull
+    const data = (await res.json()) as RecSearchDated
     const years: number[] = []
     for (const rec of data.recordings ?? []) {
       if ((rec.score ?? 0) < 90) continue
-      if (normalize(rec.title ?? '') !== want) continue
+      if (baseTitle(rec.title ?? '') !== want) continue
       if (looksLive(rec.title) || looksLive(rec.disambiguation)) continue
       const credited = (rec['artist-credit'] ?? []).some((c) =>
         (c.name ?? '').toLowerCase().includes(wantArtist),
       )
       if (!credited) continue
-      for (const rel of rec.releases ?? []) {
-        const rg = rel['release-group']
-        if (isCompOrLive(rg?.['secondary-types'])) continue
-        const pt = rg?.['primary-type']
-        if (pt && !/album|single|ep/i.test(pt)) continue
-        const y = yearOf(rel.date) ?? yearOf(rg?.['first-release-date'])
-        if (y) years.push(y)
-      }
+      const y = yearOf(rec['first-release-date'])
+      if (y) years.push(y)
     }
     if (years.length) year = Math.min(...years)
   } catch {
@@ -263,14 +271,20 @@ export async function recordingMbidFromText(
   if (cached !== undefined) return cached ?? undefined
 
   const esc = (s: string) => s.replace(/(["\\])/g, '\\$1')
-  const query = `recording:"${esc(title)}" AND artist:"${esc(artist)}"`
+  // Match the base song and skip live takes, so we don't fuzzy-match a live
+  // recording (which would wrongly flag the whole song as live and drop it).
+  const query = `recording:"${esc(stripQualifiers(title) || title)}" AND artist:"${esc(artist)}"`
   let mbid: string | undefined
   try {
-    const res = await throttled(`${MB}/recording?query=${encodeURIComponent(query)}&fmt=json&limit=3`)
+    const res = await throttled(`${MB}/recording?query=${encodeURIComponent(query)}&fmt=json&limit=5`)
     if (!res.ok) return undefined // rate-limited/server error: don't poison the cache
     const data = (await res.json()) as RecordingSearch
     const best = data.recordings?.find(
-      (r) => (r.score ?? 0) >= 90 && r['artist-credit']?.[0]?.name?.toLowerCase().includes(artist.toLowerCase()),
+      (r) =>
+        (r.score ?? 0) >= 90 &&
+        !looksLive(r.title) &&
+        !looksLive(r.disambiguation) &&
+        r['artist-credit']?.[0]?.name?.toLowerCase().includes(artist.toLowerCase()),
     )
     mbid = best?.id
   } catch {

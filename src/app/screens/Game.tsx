@@ -155,7 +155,7 @@ export function Game() {
         <SongCard
           song={game.turn.song}
           revealed={revealed}
-          result={lastResult}
+          result={lastResult === 'skipped' ? null : lastResult}
           playing={playing}
           countdown={countdown}
           placeCountdown={placeCountdown}
@@ -245,7 +245,13 @@ export function Game() {
       {revealed && (
         <>
           <p className="px-1 pb-1 text-base font-semibold">
-            {lastResult === 'correct' ? t.game.correct : stealer ? t.game.stole(stealer.name) : t.game.discarded}
+            {lastResult === 'skipped'
+              ? t.game.skipped
+              : lastResult === 'correct'
+                ? t.game.correct
+                : stealer
+                  ? t.game.stole(stealer.name)
+                  : t.game.discarded}
           </p>
           {game.turn.reveal.length > 0 && (
             <div className="mb-1 flex flex-col gap-1 rounded-xl bg-slate-800/60 p-3">
@@ -267,7 +273,7 @@ export function Game() {
           )}
           <Timeline timeline={player.timeline} mode="view" />
           <div className="mt-auto flex flex-col gap-2 py-3">
-            {!game.winnerId && player.tokens < MAX_TOKENS && (
+            {!game.winnerId && lastResult !== 'skipped' && player.tokens < MAX_TOKENS && (
               <Button
                 variant="secondary"
                 className={named ? 'bg-emerald-600/30 text-emerald-100 ring-2 ring-emerald-500' : ''}
@@ -284,9 +290,9 @@ export function Game() {
             >
               {game.winnerId
                 ? t.game.seeResult
-                : game.players.length > 1
-                  ? t.game.nextPlayer
-                  : t.game.nextSong}
+                : lastResult === 'skipped' || game.players.length === 1
+                  ? t.game.nextSong
+                  : t.game.nextPlayer}
             </Button>
           </div>
         </>

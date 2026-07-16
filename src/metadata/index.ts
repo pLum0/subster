@@ -1,7 +1,7 @@
 import type { Song } from '../subsonic/client'
 import { trackIsrc } from './deezer'
 import {
-  earliestStudioYear,
+  earliestRecordingYear,
   recordingMbidFromIsrc,
   recordingMbidFromText,
   yearFromRecordingMbid,
@@ -57,10 +57,11 @@ export async function resolveOriginalYear(
 
   if (live) return { live: true }
 
-  // 5. Refine with the earliest studio release across ALL recordings of this
-  // song. This corrects reissue-only files (e.g. "Let It Be… Naked" → 1970,
-  // not 2003). min() can only move the year earlier, never wrong-late.
-  const searchYear = await earliestStudioYear(song.artist, song.title)
+  // 5. Refine with the earliest release across ALL recordings of this song.
+  // This corrects files tagged with a later comp/mix year (e.g. a "Butch Vig
+  // Mix" off a 2004 compilation → the song's 1991 first release). min() can
+  // only move the year earlier, never wrong-late.
+  const searchYear = await earliestRecordingYear(song.artist, song.title)
   const candidates = [year, searchYear].filter((y): y is number => y !== undefined)
   if (candidates.length) return { year: Math.min(...candidates), live: false }
 

@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
-import { looksLive, yearFromRecordingMbid, yearOf } from './musicbrainz'
+import { earliestRecordingYear, looksLive, yearFromRecordingMbid, yearOf } from './musicbrainz'
 
 // The module-level rate limiter (1100ms) uses Date.now() + setTimeout, so fake
 // timers are installed for the WHOLE file: the limiter's `last` timestamp lives
@@ -74,6 +74,42 @@ describe('yearFromRecordingMbid', () => {
     vi.stubGlobal('fetch', spy)
     expect(await settled(yearFromRecordingMbid('mbid-comp'))).toEqual({ year: 1969, live: false })
     expect(spy).not.toHaveBeenCalled()
+  })
+})
+
+describe('earliestRecordingYear', () => {
+  it('takes the earliest non-live first-release-date, ignoring a later comp/mix tag', async () => {
+    // Mirrors "Smells Like Teen Spirit (Butch Vig Mix)": a later mix recording
+    // (2004) plus the original studio recordings (1991); a live take is ignored.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        res({
+          recordings: [
+            { score: 100, title: 'Smells Like Teen Spirit (Butch Vig Mix)', 'first-release-date': '2004', 'artist-credit': [{ name: 'Nirvana' }] },
+            { score: 100, title: 'Smells Like Teen Spirit', 'first-release-date': '1991-09-10', 'artist-credit': [{ name: 'Nirvana' }] },
+            { score: 100, title: 'Smells Like Teen Spirit (live)', 'first-release-date': '1991-08-01', 'artist-credit': [{ name: 'Nirvana' }] },
+          ],
+        }),
+      ),
+    )
+    // Query the specific mix; qualifier-stripping still matches the 1991 originals.
+    expect(await settled(earliestRecordingYear('Nirvana', 'Smells Like Teen Spirit (Butch Vig Mix)'))).toBe(1991)
+  })
+
+  it('requires the artist to be credited and the base title to match', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        res({
+          recordings: [
+            { score: 100, title: 'Smells Like Teen Spirit', 'first-release-date': '1979', 'artist-credit': [{ name: 'Some Cover Band' }] },
+            { score: 100, title: 'A Totally Different Song', 'first-release-date': '1980', 'artist-credit': [{ name: 'Nirvana' }] },
+          ],
+        }),
+      ),
+    )
+    expect(await settled(earliestRecordingYear('Nirvana', 'Smells Like Teen Spirit'))).toBeUndefined()
   })
 })
 

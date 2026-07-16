@@ -366,8 +366,12 @@ export const useGameStore = create<GameStore>((set, get) => {
     },
 
     skip() {
+      // Reveal the skipped song (keep it playing, like a normal reveal); the
+      // next song is drawn on NEXT_TURN.
+      clearCountdown()
+      set({ countdown: null, placeCountdown: null })
+      audioPlayer.unwatch()
       transport?.dispatch({ type: 'SKIP' })
-      beginTurn() // a fresh mystery song was drawn
     },
 
     openChallenges() {

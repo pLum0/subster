@@ -94,6 +94,7 @@ export const en = {
     correct: '✓ Correct!',
     stole: (name: string) => `✗ Wrong — ${name} stole the card!`,
     discarded: '✗ Not quite — card discarded',
+    skipped: '⏭ Skipped — here it is',
     namedOn: '✓ Named title + artist (+1 token)',
     namedOff: (name: string) => `🎤 ${name} named title + artist?`,
     nextPlayer: 'Next player →',
@@ -120,6 +121,7 @@ export const en = {
     winner: 'Winner',
     cards: (n: number) => `${n} cards`,
     rematch: 'Rematch',
+    playAgain: 'Play again',
     home: 'Home',
   },
   /** Screen-reader-only labels (aria-label etc.). */

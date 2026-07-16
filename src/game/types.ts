@@ -63,8 +63,8 @@ export interface CurrentTurn {
   pendingSlot: number | null
   /** Token bets placed by other players during the challenging phase. */
   challenges: Challenge[]
-  /** Result of the active player's placement, for UI feedback. */
-  lastResult: 'correct' | 'wrong' | null
+  /** Result of the active player's placement (or 'skipped'), for UI feedback. */
+  lastResult: 'correct' | 'wrong' | 'skipped' | null
   /** Player id who stole the card via a correct challenge, if any. */
   stealerId: string | null
   /** Whether the active player has been awarded the title+artist token this turn. */

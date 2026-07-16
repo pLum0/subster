@@ -51,7 +51,7 @@ export function Winner() {
             navigate('/game')
           }}
         >
-          {t.winner.rematch}
+          {game.players.length > 1 ? t.winner.rematch : t.winner.playAgain}
         </Button>
         <Button
           variant="ghost"
