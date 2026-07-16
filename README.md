@@ -28,8 +28,10 @@ No physical cards, no accounts, **no backend** — just your phone and your own 
 - ✅ **Library picker** — draw from a chosen music folder (e.g. skip your Audiobooks library)
 - ✅ **Original release year** via [MusicBrainz](https://musicbrainz.org/): a song's file year is often
   a remaster/compilation year, so we look the recording up (by its MusicBrainz ID → ISRC → Deezer ISRC →
-  fuzzy text, in that order) and take the earliest release-group date. Falls back to the file's year if
-  nothing resolves. (e.g. "The Boxer" tagged 1991 on a Greatest-Hits album → corrected to 1969.)
+  fuzzy text, in that order) and take the earliest recording date. (e.g. "The Boxer" tagged 1991 on a
+  Greatest-Hits album → corrected to 1969.) For songs MusicBrainz can only date to a late reissue —
+  typically old tracks — we fall back to [Wikidata](https://www.wikidata.org/)'s published year (e.g. a
+  1936 chanson MusicBrainz dates 1992). Falls back to the file's year if nothing resolves.
 - ✅ **Deck builder**: a **75/25 known-vs-rest mix** where "known" is chosen by *oversampling* — a large
   pool is ranked by [Deezer](https://www.deezer.com/)'s track `rank` and the genuinely top-ranked songs
   become the known pool (the obscure long tail is discarded), so the deck actually feels recognizable.
@@ -91,26 +93,28 @@ The **Android app avoids CORS completely** — it uses Capacitor's native HTTP l
 don't go through the browser's CORS gate. Any reachable Subsonic server works without extra config.
 This also matters for **Deezer** (popularity), which sends no CORS headers: popularity works in the
 APK but not in a plain desktop-browser build (where songs just fall back to "unknown"). MusicBrainz
-sends `Access-Control-Allow-Origin: *`, so original-year resolution works everywhere.
+and Wikidata send `Access-Control-Allow-Origin: *`, so original-year resolution works everywhere.
 
 ## Privacy
 
 Subster has no backend, no accounts, and no analytics. To build the deck it sends the **artist,
-title, and ISRC** of candidate songs from your library to two public APIs:
+title, and ISRC** of candidate songs from your library to three public APIs:
 
-- **Deezer** — to rank how recognizable a track is (its public play-count rank), and
-- **MusicBrainz** — to find a song's original release year.
+- **Deezer** — to rank how recognizable a track is (its public play-count rank),
+- **MusicBrainz** — to find a song's original release year, and
+- **Wikidata** — a fallback published year for songs MusicBrainz can only date to a late reissue.
 
-Nothing else leaves your device: no user identity, no server address, no listening history. Both
-APIs are contacted over https, and all lookups are cached locally so repeat games re-send nothing.
+Nothing else leaves your device: no user identity, no server address, no listening history. All
+APIs are contacted over https, and every lookup is cached locally so repeat games re-send nothing.
 If that tradeoff isn't for you, the deck still works without them — songs fall back to the file's
 tagged year and "unknown" popularity.
 
 ### First run is slower
 
-Resolving a song hits Deezer (popularity) and MusicBrainz (original year, rate-limited to ~1 req/s).
-The deck builds incrementally — a small first batch lets the game start quickly, then it tops up in the
-background. All lookups are cached in `localStorage`, so later games with the same library are fast.
+Resolving a song hits Deezer (popularity) and MusicBrainz (original year, rate-limited to ~1 req/s),
+with an occasional Wikidata lookup for songs MusicBrainz can't cleanly date. The deck builds
+incrementally — a small first batch lets the game start quickly, then it tops up in the background.
+All lookups are cached in `localStorage`, so later games with the same library are fast.
 
 ## Android (install on a device via adb)
 
