@@ -9,8 +9,7 @@ A backend-free, smartphone-only **music timeline party game** that plays **your 
 song plays blind; you place it on your timeline by guessing whether it's older or newer than the
 songs already there. Guess right, keep the card. First to 10 cards wins.
 
-No physical cards, no accounts, **no backend** — the app talks directly to your server from the
-browser (or an Android WebView).
+No physical cards, no accounts, **no backend** — just your phone and your own music library.
 
 ## Screenshots
 
