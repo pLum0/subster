@@ -53,6 +53,7 @@ let lastNames: string[] = []
 let lastSettings: GameSettings = { winTarget: 10, startTokens: 0, challengeGrace: false }
 let playback: PlaybackSettings = DEFAULT_PLAYBACK
 let countdownTimer: ReturnType<typeof setInterval> | null = null
+let quitHintTimer: ReturnType<typeof setTimeout> | null = null
 
 const BG_BATCH = 6
 
@@ -74,8 +75,12 @@ interface GameStore {
   placeCountdown: number | null
   /** True once a clip has finished — playback is spent for this turn. */
   clipEnded: boolean
+  /** Brief "swipe back again to quit" hint (Android back gesture). */
+  quitHint: boolean
 
   startGame: (opts: StartGameOptions) => Promise<void>
+  /** Show the quit hint for ~2s (first back swipe during a game). */
+  flashQuitHint: () => void
   place: (slot: number) => void
   skip: () => void
   openChallenges: () => void
@@ -186,6 +191,13 @@ export const useGameStore = create<GameStore>((set, get) => {
     countdown: null,
     placeCountdown: null,
     clipEnded: false,
+    quitHint: false,
+
+    flashQuitHint() {
+      if (quitHintTimer) clearTimeout(quitHintTimer)
+      set({ quitHint: true })
+      quitHintTimer = setTimeout(() => set({ quitHint: false }), 2000)
+    },
 
     async startGame({ playerNames, settings, deck, playback: pb }) {
       const server = getEffectiveServer()
@@ -440,6 +452,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     quit() {
       producerToken++
       clearCountdown()
+      if (quitHintTimer) clearTimeout(quitHintTimer)
       audioPlayer.stop()
       transport?.destroy()
       transport = null
@@ -451,6 +464,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         countdown: null,
         placeCountdown: null,
         clipEnded: false,
+        quitHint: false,
       })
     },
   }

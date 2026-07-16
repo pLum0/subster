@@ -22,10 +22,30 @@ export const router = createHashRouter([
 // Mirror each screen's own back affordance instead — deterministic targets
 // rather than history(-1), since game flows leave odd history chains.
 if (Capacitor.isNativePlatform()) {
+  let lastGameBack = 0
   void CapApp.addListener('backButton', () => {
     const path = router.state.location.pathname
-    if (path === '/game' || path === '/winner') {
-      // Same as the Quit/Home buttons: end the game and stop the audio.
+    if (path === '/game') {
+      const store = useGameStore.getState()
+      if (store.status !== 'ready') {
+        // Still preparing the deck (or errored) — nothing to lose: one swipe
+        // cancels the build (quit bumps producerToken) and returns to setup.
+        store.quit()
+        void router.navigate('/setup')
+        return
+      }
+      // A stray gesture must not kill a running game: quit only on a second
+      // swipe within 2s; the first one shows a hint.
+      const now = Date.now()
+      if (now - lastGameBack < 2000) {
+        store.quit()
+        void router.navigate('/')
+      } else {
+        lastGameBack = now
+        store.flashQuitHint()
+      }
+    } else if (path === '/winner') {
+      // Game already decided — same as the Home button.
       useGameStore.getState().quit()
       void router.navigate('/')
     } else if (path === '/') {

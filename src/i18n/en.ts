@@ -88,6 +88,7 @@ export const en = {
   },
   game: {
     quit: 'Quit',
+    backToQuit: 'Swipe back again to quit the game',
     tokens: (n: number) => `${n} token${n === 1 ? '' : 's'}`,
     noTokens: 'no tokens',
     dealing: 'Dealing the first cards…',

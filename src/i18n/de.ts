@@ -81,6 +81,7 @@ export const de: Dict = {
   },
   game: {
     quit: 'Beenden',
+    backToQuit: 'Nochmal zurück wischen, um das Spiel zu beenden',
     tokens: (n: number) => `${n} Token`,
     noTokens: 'keine Token',
     dealing: 'Erste Karten werden ausgeteilt…',

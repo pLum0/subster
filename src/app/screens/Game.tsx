@@ -15,7 +15,7 @@ import { useT } from '../../i18n'
 export function Game() {
   const navigate = useNavigate()
   const t = useT()
-  const { game, status, dealt, error, countdown, placeCountdown, clipEnded, place, skip, openChallenges, challenge, unchallenge, reveal, awardNaming, nextTurn, toggleAudio, quit } =
+  const { game, status, dealt, error, countdown, placeCountdown, clipEnded, quitHint, place, skip, openChallenges, challenge, unchallenge, reveal, awardNaming, nextTurn, toggleAudio, quit } =
     useGameStore()
 
   // Which challenger is currently armed to place/adjust a bet.
@@ -126,6 +126,11 @@ export function Game() {
 
   return (
     <Layout>
+      {quitHint && (
+        <div className="fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-full bg-slate-800/95 px-4 py-2 text-sm text-slate-200 shadow-lg ring-1 ring-slate-600">
+          {t.game.backToQuit}
+        </div>
+      )}
       <header className="flex items-start justify-between py-2">
         <div>
           <div className="text-lg font-bold">{player.name}</div>
