@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@capacitor/android": "^6.2.1",
+    "@capacitor/app": "^6.0.3",
     "@capacitor/core": "^6.2.1",
     "@capacitor/status-bar": "^6.0.3",
     "@jofr/capacitor-media-session": "^4.0.0",
