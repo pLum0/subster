@@ -43,6 +43,7 @@ export const de: Dict = {
     library: 'Bibliothek',
     source: 'Quelle',
     libraries: 'Bibliotheken',
+    allLibraries: 'Alle Bibliotheken',
     playlists: 'Playlists',
     playlistSongs: (n: number) => `${n} Songs`,
     onlineMeta: 'Online-Metadaten',

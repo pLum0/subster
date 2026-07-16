@@ -56,8 +56,10 @@ export function GameSetup() {
     getMusicFolders(server)
       .then((fs) => {
         setFolders(fs)
-        // Keep a saved (still-valid) folder; otherwise auto-pick a sensible one.
+        // Keep a saved (still-valid) folder — 'all' is the deliberate
+        // no-filter choice; otherwise auto-pick a sensible one.
         setMusicFolderId((cur) => {
+          if (cur === 'all') return cur
           if (cur && fs.some((f) => f.id === cur)) return cur
           const preferred =
             fs.find((f) => /music/i.test(f.name) && !/audiobook|kids/i.test(f.name)) ??
@@ -124,7 +126,8 @@ export function GameSetup() {
       playerNames: names,
       settings: { winTarget, startTokens: 2, challengeGrace },
       deck: {
-        musicFolderId: playlistId ? undefined : musicFolderId || undefined,
+        musicFolderId:
+          playlistId || musicFolderId === 'all' ? undefined : musicFolderId || undefined,
         playlistId: playlistId || undefined,
         difficulty,
         yearFrom: yearFrom ? Number(yearFrom) : undefined,
@@ -202,6 +205,7 @@ export function GameSetup() {
                 onChange={(e) => pickSource(e.target.value)}
               >
                 <optgroup label={t.setup.libraries}>
+                  <option value="f:all">{t.setup.allLibraries}</option>
                   {folders.map((f) => (
                     <option key={f.id} value={`f:${f.id}`}>
                       {f.name}

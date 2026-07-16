@@ -50,6 +50,7 @@ export const en = {
     library: 'Library',
     source: 'Source',
     libraries: 'Libraries',
+    allLibraries: 'All libraries',
     playlists: 'Playlists',
     playlistSongs: (n: number) => `${n} songs`,
     onlineMeta: 'Online metadata',
