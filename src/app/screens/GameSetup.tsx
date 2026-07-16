@@ -2,15 +2,22 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Layout } from '../Layout'
 import { Button } from '../../ui/Button'
-import { useConfigStore } from '../../store/configStore'
+import { useEffectiveServer } from '../../store/configStore'
 import { useGameStore } from '../../store/gameStore'
 import { useSetupStore } from '../../store/setupStore'
-import { getGenres, getMusicFolders, type Genre, type MusicFolder } from '../../subsonic/client'
+import {
+  getGenres,
+  getMusicFolders,
+  getPlaylists,
+  type Genre,
+  type MusicFolder,
+  type Playlist,
+} from '../../subsonic/client'
 import { useT } from '../../i18n'
 
 export function GameSetup() {
   const navigate = useNavigate()
-  const server = useConfigStore((s) => s.server)
+  const server = useEffectiveServer()
   const startGame = useGameStore((s) => s.startGame)
   const savePrefs = useSetupStore((s) => s.savePrefs)
   const t = useT()
@@ -33,6 +40,10 @@ export function GameSetup() {
   const [genres, setGenres] = useState<Genre[]>([])
   const [folders, setFolders] = useState<MusicFolder[]>([])
   const [musicFolderId, setMusicFolderId] = useState<string>(saved.musicFolderId)
+  const [playlists, setPlaylists] = useState<Playlist[]>([])
+  // Non-empty = deck comes from this playlist instead of a library.
+  const [playlistId, setPlaylistId] = useState<string>(saved.playlistId ?? '')
+  const [onlineMeta, setOnlineMeta] = useState<boolean>(saved.onlineMeta ?? true)
 
   useEffect(() => {
     if (!server) {
@@ -56,6 +67,13 @@ export function GameSetup() {
         })
       })
       .catch(() => setFolders([]))
+    getPlaylists(server)
+      .then((ps) => {
+        setPlaylists(ps)
+        // Drop a saved playlist that no longer exists.
+        setPlaylistId((cur) => (cur && ps.some((p) => p.id === cur) ? cur : ''))
+      })
+      .catch(() => setPlaylists([]))
   }, [server, navigate])
 
   function setName(i: number, value: string) {
@@ -68,6 +86,20 @@ export function GameSetup() {
     let k = 1
     while (current.includes(t.setup.playerN(k))) k++
     return t.setup.playerN(k)
+  }
+
+  // Selecting a playlist defaults to the API-free "just play these songs"
+  // tier (a hand-picked list needs no ranking); back to a library restores
+  // online metadata. Both stay user-togglable afterwards.
+  function pickSource(value: string) {
+    if (value.startsWith('p:')) {
+      setPlaylistId(value.slice(2))
+      setOnlineMeta(false)
+    } else {
+      setPlaylistId('')
+      setMusicFolderId(value.slice(2))
+      setOnlineMeta(true)
+    }
   }
 
   function start() {
@@ -85,16 +117,20 @@ export function GameSetup() {
       yearTo,
       genre,
       musicFolderId,
+      playlistId,
+      onlineMeta,
     })
     startGame({
       playerNames: names,
       settings: { winTarget, startTokens: 2, challengeGrace },
       deck: {
-        musicFolderId: musicFolderId || undefined,
+        musicFolderId: playlistId ? undefined : musicFolderId || undefined,
+        playlistId: playlistId || undefined,
         difficulty,
         yearFrom: yearFrom ? Number(yearFrom) : undefined,
         yearTo: yearTo ? Number(yearTo) : undefined,
-        genre: genre || undefined,
+        genre: playlistId ? undefined : genre || undefined,
+        onlineMeta,
       },
       playback: { trigger, clip, randomStart, lockOnEnd },
     })
@@ -157,19 +193,30 @@ export function GameSetup() {
         <section className="flex flex-col gap-4">
           <h2 className="text-sm font-semibold text-slate-400">{t.setup.deck}</h2>
 
-          {folders.length > 1 && (
+          {(folders.length > 1 || playlists.length > 0) && (
             <label className="flex items-center justify-between gap-3">
-              <span>{t.setup.library}</span>
+              <span>{playlists.length > 0 ? t.setup.source : t.setup.library}</span>
               <select
                 className="w-44 rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 outline-none focus:border-brand-500"
-                value={musicFolderId}
-                onChange={(e) => setMusicFolderId(e.target.value)}
+                value={playlistId ? `p:${playlistId}` : `f:${musicFolderId}`}
+                onChange={(e) => pickSource(e.target.value)}
               >
-                {folders.map((f) => (
-                  <option key={f.id} value={f.id}>
-                    {f.name}
-                  </option>
-                ))}
+                <optgroup label={t.setup.libraries}>
+                  {folders.map((f) => (
+                    <option key={f.id} value={`f:${f.id}`}>
+                      {f.name}
+                    </option>
+                  ))}
+                </optgroup>
+                {playlists.length > 0 && (
+                  <optgroup label={t.setup.playlists}>
+                    {playlists.map((p) => (
+                      <option key={p.id} value={`p:${p.id}`}>
+                        {p.name} · {t.setup.playlistSongs(p.songCount)}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
               </select>
             </label>
           )}
@@ -186,12 +233,15 @@ export function GameSetup() {
             />
           </label>
 
-          <div className="flex flex-col gap-1.5">
+          {/* Difficulty is Deezer-rank based, so it has no effect while online
+              metadata is off — shown greyed-out rather than hidden. */}
+          <div className={`flex flex-col gap-1.5 ${onlineMeta ? '' : 'pointer-events-none opacity-40'}`}>
             <span>{t.setup.difficulty}</span>
             <div className="grid grid-cols-3 gap-2">
               {difficultyOptions.map(([value, label, hint]) => (
                 <button
                   key={value}
+                  disabled={!onlineMeta}
                   onClick={() => setDifficulty(value)}
                   className={`flex flex-col items-center rounded-xl border px-2 py-2.5 text-center ${
                     difficulty === value
@@ -205,6 +255,28 @@ export function GameSetup() {
               ))}
             </div>
             <span className="text-xs text-slate-500">{t.setup.popularityNote}</span>
+          </div>
+
+          <div className="flex items-center justify-between gap-3">
+            <button type="button" className="flex-1 text-left" onClick={() => setOnlineMeta((v) => !v)}>
+              {t.setup.onlineMeta}
+              <span className="mt-0.5 block text-xs text-slate-500">{t.setup.onlineMetaHint}</span>
+            </button>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={onlineMeta}
+              onClick={() => setOnlineMeta((v) => !v)}
+              className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
+                onlineMeta ? 'bg-brand-500' : 'bg-slate-600'
+              }`}
+            >
+              <span
+                className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                  onlineMeta ? 'translate-x-5' : 'translate-x-0'
+                }`}
+              />
+            </button>
           </div>
 
           <div className="flex items-center justify-between gap-3">
@@ -228,7 +300,7 @@ export function GameSetup() {
             </div>
           </div>
 
-          {genres.length > 0 && (
+          {genres.length > 0 && !playlistId && (
             <label className="flex items-center justify-between gap-3">
               <span>{t.setup.genre}</span>
               <select

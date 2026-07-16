@@ -1,5 +1,5 @@
 import type { Song } from '../subsonic/client'
-import { useConfigStore } from '../store/configStore'
+import { useEffectiveServer } from '../store/configStore'
 import { coverArtUrl } from '../subsonic/client'
 import { useT } from '../i18n'
 
@@ -32,7 +32,7 @@ export function SongCard({
   /** Tap the mystery card to play/pause. */
   onToggle?: () => void
 }) {
-  const server = useConfigStore((s) => s.server)
+  const server = useEffectiveServer()
   const t = useT()
 
   if (!revealed) {

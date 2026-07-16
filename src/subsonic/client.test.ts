@@ -1,5 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { ApiError, buildUrl, getRandomSongs, ping } from './client'
+import {
+  ApiError,
+  buildUrl,
+  getPlaylists,
+  getPlaylistSongs,
+  getRandomSongs,
+  ping,
+  resolveEffectiveServer,
+} from './client'
 import type { ServerConfig } from '../store/configStore'
 
 const config: ServerConfig = {
@@ -100,6 +108,74 @@ describe('buildUrl', () => {
     expect(url.searchParams.get('size')).toBe('10')
     expect(url.searchParams.has('genre')).toBe(false)
     expect(url.searchParams.has('musicFolderId')).toBe(false)
+  })
+})
+
+describe('playlists', () => {
+  it('lists playlists with normalized ids and song counts', async () => {
+    const body = {
+      'subsonic-response': {
+        status: 'ok',
+        playlists: { playlist: [{ id: 7, name: 'Party', songCount: 42 }, { id: '8' }] },
+      },
+    }
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(body)))
+    expect(await getPlaylists(config)).toEqual([
+      { id: '7', name: 'Party', songCount: 42 },
+      { id: '8', name: '8', songCount: 0 },
+    ])
+  })
+
+  it('returns a playlist’s songs deduped by id', async () => {
+    const body = {
+      'subsonic-response': {
+        status: 'ok',
+        playlist: {
+          id: '7',
+          entry: [
+            { id: 'a', title: 'One', artist: 'X', year: 1971 },
+            { id: 'b', title: 'Two', artist: 'Y' },
+            { id: 'a', title: 'One', artist: 'X', year: 1971 },
+          ],
+        },
+      },
+    }
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(body)))
+    const songs = await getPlaylistSongs(config, '7')
+    expect(songs.map((s) => s.id)).toEqual(['a', 'b'])
+  })
+})
+
+describe('resolveEffectiveServer', () => {
+  const withLocal: ServerConfig = { ...config, localBaseUrl: 'http://192.168.1.9:4533' }
+  const okPing = jsonResponse({ 'subsonic-response': { status: 'ok' } })
+
+  it('prefers the local address when it answers', async () => {
+    const spy = vi.fn().mockResolvedValue(okPing)
+    vi.stubGlobal('fetch', spy)
+    const eff = await resolveEffectiveServer(withLocal)
+    expect(eff.baseUrl).toBe('http://192.168.1.9:4533')
+    expect(String(spy.mock.calls[0]![0])).toContain('192.168.1.9')
+  })
+
+  it('falls back to the primary address when the local one is unreachable', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')))
+    expect((await resolveEffectiveServer(withLocal)).baseUrl).toBe(config.baseUrl)
+  })
+
+  it('falls back when the local address answers but is not a Subsonic server', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(jsonResponse({ hello: 'not subsonic' })),
+    )
+    expect((await resolveEffectiveServer(withLocal)).baseUrl).toBe(config.baseUrl)
+  })
+
+  it('is a no-op without a local address (no network call)', async () => {
+    const spy = vi.fn()
+    vi.stubGlobal('fetch', spy)
+    expect(await resolveEffectiveServer(config)).toBe(config)
+    expect(spy).not.toHaveBeenCalled()
   })
 })
 

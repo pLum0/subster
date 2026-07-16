@@ -14,6 +14,7 @@ export function ServerSetup() {
 
   const [name, setName] = useState(server?.name ?? '')
   const [baseUrl, setBaseUrl] = useState(server?.baseUrl ?? '')
+  const [localBaseUrl, setLocalBaseUrl] = useState(server?.localBaseUrl ?? '')
   const [username, setUsername] = useState(server?.username ?? '')
   const [password, setPassword] = useState('')
   const [status, setStatus] = useState<'idle' | 'testing' | 'error'>('idle')
@@ -28,11 +29,14 @@ export function ServerSetup() {
     const candidate = {
       name: name.trim(),
       baseUrl: baseUrl.trim(),
+      localBaseUrl: localBaseUrl.trim() || undefined,
       username: username.trim(),
       salt,
       token,
     }
 
+    // The primary URL must answer; the local one is best-effort at runtime
+    // (unreachable simply means "not at home right now").
     const result = await ping(candidate)
     if (result.ok) {
       setServer(candidate)
@@ -50,7 +54,7 @@ export function ServerSetup() {
   }
 
   const canSubmit = baseUrl.trim() && username.trim() && password && status !== 'testing'
-  const insecureUrl = /^http:\/\//i.test(baseUrl.trim())
+  const insecureUrl = /^http:\/\//i.test(baseUrl.trim()) || /^http:\/\//i.test(localBaseUrl.trim())
 
   return (
     <Layout>
@@ -80,6 +84,18 @@ export function ServerSetup() {
             value={baseUrl}
             onChange={(e) => setBaseUrl(e.target.value)}
           />
+        </Field>
+        <Field label={t.server.localUrl}>
+          <input
+            className={inputClass}
+            placeholder="http://192.168.1.20:4533"
+            inputMode="url"
+            autoCapitalize="off"
+            autoCorrect="off"
+            value={localBaseUrl}
+            onChange={(e) => setLocalBaseUrl(e.target.value)}
+          />
+          <span className="text-xs text-slate-500">{t.server.localUrlHint}</span>
         </Field>
         {insecureUrl && (
           <p className="rounded-lg bg-amber-950/60 p-3 text-sm text-amber-300">

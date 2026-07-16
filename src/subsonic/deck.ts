@@ -113,6 +113,8 @@ export function isLiveVersion(title: string, album?: string): boolean {
 export interface DeckOptions {
   /** Library to draw from (Subsonic music folder id). */
   musicFolderId?: string
+  /** Build the deck from this playlist instead of a library. */
+  playlistId?: string
   yearFrom?: number
   yearTo?: number
   genre?: string
@@ -120,6 +122,13 @@ export interface DeckOptions {
   targetSize?: number
   /** Popularity difficulty preset. */
   difficulty?: Difficulty
+  /**
+   * Contact external APIs (Deezer popularity, MusicBrainz/Wikidata years)?
+   * `false` guarantees only the user's own server is reached: file-tag years,
+   * curated-canon membership as the offline "known" signal, no rank tiers.
+   * Defaults to true.
+   */
+  onlineMeta?: boolean
 }
 
 export interface FetchCandidatesOptions {

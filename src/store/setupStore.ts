@@ -19,6 +19,14 @@ export interface SetupPrefs {
   yearTo: string
   genre: string
   musicFolderId: string
+  /** Non-empty = build the deck from this playlist instead of a library. */
+  playlistId: string
+  /**
+   * Contact Deezer/MusicBrainz/Wikidata for popularity + original years.
+   * Off = only the user's own server is reached; file years are used.
+   * Defaults on for library decks, off when a playlist is picked.
+   */
+  onlineMeta: boolean
 }
 
 export const DEFAULT_PREFS: SetupPrefs = {
@@ -34,6 +42,8 @@ export const DEFAULT_PREFS: SetupPrefs = {
   yearTo: '',
   genre: '',
   musicFolderId: '',
+  playlistId: '',
+  onlineMeta: true,
 }
 
 interface SetupState {

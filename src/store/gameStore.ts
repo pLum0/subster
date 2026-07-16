@@ -15,12 +15,13 @@ import {
   type ClassifiedSong,
   type DeckOptions,
 } from '../subsonic/deck'
-import { searchTrack, resolveOriginalYear } from '../metadata'
+import { searchTrack } from '../metadata'
 import { isCurated } from '../metadata/curated'
 import { findCuratedSongs } from '../metadata/curatedFetch'
-import { streamUrl, type Song } from '../subsonic/client'
+import { getPlaylistSongs, streamUrl, type Song } from '../subsonic/client'
+import { cardMaker } from '../subsonic/cards'
 import { audioPlayer } from '../audio/player'
-import { useConfigStore } from './configStore'
+import { getEffectiveServer } from './configStore'
 
 /** How the mystery song is presented each turn. */
 export interface PlaybackSettings {
@@ -128,7 +129,7 @@ export const useGameStore = create<GameStore>((set, get) => {
   }
 
   const playSong = (song: Song) => {
-    const server = useConfigStore.getState().server
+    const server = getEffectiveServer()
     if (!server) return
     const at = startOffset(song)
     // Fade in on a mid-song (random) start so it doesn't jump in abruptly.
@@ -187,7 +188,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     clipEnded: false,
 
     async startGame({ playerNames, settings, deck, playback: pb }) {
-      const server = useConfigStore.getState().server
+      const server = getEffectiveServer()
       if (!server) {
         set({ status: 'error', error: 'No server configured.' })
         return
@@ -201,41 +202,43 @@ export const useGameStore = create<GameStore>((set, get) => {
       set({ status: 'building', dealt: 0, error: null })
 
       const rng = Math.random
+      // With online metadata off, only the user's own server may be contacted:
+      // no Deezer ranking (curated-canon membership is the offline "known"
+      // signal instead — no rank floor/tiers), no MusicBrainz/Wikidata years.
+      const online = deck.onlineMeta !== false
       const difficulty = deck.difficulty ?? 'balanced'
       const tiers = DIFFICULTY[difficulty]
       const floor = deckFloor(tiers)
       // Don't boost the famous-songs canon in Rarities mode — keep it obscure.
       const boostCurated = difficulty !== 'deep'
-      const target = deck.targetSize ?? clamp(Math.round(playerNames.length * settings.winTarget * 1.6) + 4, 40, 90)
+      let target = deck.targetSize ?? clamp(Math.round(playerNames.length * settings.winTarget * 1.6) + 4, 40, 90)
       const quotas = computeQuotas(target, tiers)
 
-      // Only the random pool gates startup — it's one fast call. The canon
+      // Only the starting pool gates startup — it's one fast call. The canon
       // lookup (many searches, slow on a cold cache) must NOT block dealing, so
       // it runs as a separate background producer that streams its cards in.
       let pool: Song[]
       try {
-        pool = shuffle(
-          await fetchCandidates(server, {
-            size: clamp(Math.round(target * 3.5), 160, 300),
-            musicFolderId: deck.musicFolderId,
-            genre: deck.genre,
-          }),
-          rng,
-        )
+        if (deck.playlistId) {
+          // A playlist is already hand-curated: use it whole, just shuffled.
+          pool = shuffle(await getPlaylistSongs(server, deck.playlistId), rng)
+          target = Math.min(target, pool.length)
+        } else {
+          pool = shuffle(
+            await fetchCandidates(server, {
+              size: clamp(Math.round(target * 3.5), 160, 300),
+              musicFolderId: deck.musicFolderId,
+              genre: deck.genre,
+            }),
+            rng,
+          )
+        }
       } catch (e) {
         set({ status: 'error', error: (e as Error).message })
         return
       }
 
-      const makeCard = async (song: Song, deezerId?: number): Promise<Song | null> => {
-        const resolved = await resolveOriginalYear(song, deezerId)
-        if (resolved.live) return null
-        const year = resolved.year ?? song.year
-        if (!year || year <= 0) return null
-        if (deck.yearFrom && year < deck.yearFrom) return null
-        if (deck.yearTo && year > deck.yearTo) return null
-        return { ...song, year }
-      }
+      const makeCard = cardMaker(deck)
 
       const minToStart = playerNames.length + 1
       let started = false
@@ -280,6 +283,13 @@ export const useGameStore = create<GameStore>((set, get) => {
       const produce = async () => {
         for (const song of pool) {
           if (producerToken !== myToken || deckCount >= target) break
+          if (!online) {
+            // Offline tier: no Deezer ranking, no floor/tiers — every song in
+            // the pool becomes a card (file-tag year; yearless ones drop).
+            const card = await makeCard(song)
+            if (card) emit(card)
+            continue
+          }
           // A canon song is a top hit even if Deezer under-rates it (older/
           // regional) or has no match — skip the Deezer lookup entirely.
           const curated = boostCurated && isCurated(song.artist, song.title)
@@ -306,9 +316,11 @@ export const useGameStore = create<GameStore>((set, get) => {
       }
 
       // Background: locate famous-canon songs in the library and stream them in
-      // as they're found. Never gates startup; on a warm cache it's near-instant.
+      // as they're found (bundled canon + same-server search — works offline
+      // too). Never gates startup; on a warm cache it's near-instant. Skipped
+      // for playlists: it would pull songs from outside the chosen playlist.
       const produceCurated = async () => {
-        if (!boostCurated) return
+        if (!boostCurated || deck.playlistId) return
         let curatedSongs: Song[] = []
         try {
           curatedSongs = await findCuratedSongs(server, {

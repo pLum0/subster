@@ -17,6 +17,9 @@ export const de: Dict = {
     name: 'Servername (optional)',
     namePlaceholder: 'Heim-Navidrome',
     url: 'Server-URL',
+    localUrl: 'Lokale Adresse (optional)',
+    localUrlHint:
+      'Eine LAN-Adresse (z. B. http://192.168.1.20:4533), die automatisch genutzt wird, wenn sie erreichbar ist — schneller zu Hause, unterwegs gilt die Server-URL.',
     username: 'Benutzername',
     password: 'Passwort',
     testing: 'Verbindung wird getestet…',
@@ -38,6 +41,13 @@ export const de: Dict = {
     removePlayer: 'Spieler entfernen',
     deck: 'Kartenstapel',
     library: 'Bibliothek',
+    source: 'Quelle',
+    libraries: 'Bibliotheken',
+    playlists: 'Playlists',
+    playlistSongs: (n: number) => `${n} Songs`,
+    onlineMeta: 'Online-Metadaten',
+    onlineMetaHint:
+      'Bekanntheit über Deezer, Jahreskorrektur über MusicBrainz/Wikidata. Aus = nur dein Server wird kontaktiert; das Datei-Jahr wird direkt verwendet.',
     cardsToWin: 'Karten zum Sieg',
     difficulty: 'Schwierigkeit',
     diffHits: 'Hits',

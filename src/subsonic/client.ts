@@ -30,6 +30,12 @@ export interface MusicFolder {
   name: string
 }
 
+export interface Playlist {
+  id: string
+  name: string
+  songCount: number
+}
+
 export interface GetRandomSongsOptions {
   size?: number
   fromYear?: number
@@ -102,7 +108,15 @@ interface SubsonicEnvelope {
     artists?: { index?: Array<{ artist?: Array<{ id: string | number; name?: string }> }> }
     genres?: { genre?: RawGenre[] }
     musicFolders?: { musicFolder?: Array<{ id: string | number; name?: string }> }
+    playlists?: { playlist?: RawPlaylist[] }
+    playlist?: RawPlaylist & { entry?: RawSong[] }
   }
+}
+
+interface RawPlaylist {
+  id: string | number
+  name?: string
+  songCount?: number
 }
 
 interface RawSong {
@@ -257,4 +271,55 @@ export async function getMusicFolders(config: ServerConfig): Promise<MusicFolder
     id: String(f.id),
     name: f.name ?? String(f.id),
   }))
+}
+
+/** All playlists visible to this user — an alternative deck source. */
+export async function getPlaylists(config: ServerConfig): Promise<Playlist[]> {
+  const body = await apiFetch(config, 'getPlaylists.view')
+  return (body.playlists?.playlist ?? []).map((p) => ({
+    id: String(p.id),
+    name: p.name ?? String(p.id),
+    songCount: p.songCount ?? 0,
+  }))
+}
+
+/** The songs of one playlist, deduped (a playlist may repeat a track). */
+export async function getPlaylistSongs(config: ServerConfig, id: string): Promise<Song[]> {
+  const body = await apiFetch(config, 'getPlaylist.view', { id })
+  const seen = new Set<string>()
+  return (body.playlist?.entry ?? []).map(toSong).filter((s) => {
+    if (seen.has(s.id)) return false
+    seen.add(s.id)
+    return true
+  })
+}
+
+/**
+ * Pick the reachable base URL for this session: if a local (LAN) address is
+ * configured, ping it with a short timeout and use it when it answers;
+ * otherwise fall back to the primary address. Never throws.
+ */
+export async function resolveEffectiveServer(
+  config: ServerConfig,
+  timeoutMs = 2500,
+): Promise<ServerConfig> {
+  const local = config.localBaseUrl?.trim()
+  if (!local || local === config.baseUrl) return config
+  const candidate: ServerConfig = { ...config, baseUrl: local }
+  try {
+    const ctrl = new AbortController()
+    const timer = setTimeout(() => ctrl.abort(), timeoutMs)
+    const res = await fetch(buildUrl(candidate, 'ping.view'), {
+      headers: { Accept: 'application/json' },
+      signal: ctrl.signal,
+    })
+    clearTimeout(timer)
+    if (res.ok) {
+      const json = (await res.json()) as SubsonicEnvelope
+      if (json['subsonic-response']?.status === 'ok') return candidate
+    }
+  } catch {
+    // Unreachable or timed out → use the primary address.
+  }
+  return config
 }

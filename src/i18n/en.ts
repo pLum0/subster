@@ -21,6 +21,9 @@ export const en = {
     name: 'Server name (optional)',
     namePlaceholder: 'Home Navidrome',
     url: 'Server URL',
+    localUrl: 'Local address (optional)',
+    localUrlHint:
+      'A LAN address (e.g. http://192.168.1.20:4533) used automatically whenever it is reachable — faster at home, falls back to the server URL when away.',
     username: 'Username',
     password: 'Password',
     testing: 'Testing connection…',
@@ -45,6 +48,13 @@ export const en = {
     removePlayer: 'Remove player',
     deck: 'Deck',
     library: 'Library',
+    source: 'Source',
+    libraries: 'Libraries',
+    playlists: 'Playlists',
+    playlistSongs: (n: number) => `${n} songs`,
+    onlineMeta: 'Online metadata',
+    onlineMetaHint:
+      'Rank popularity via Deezer and correct years via MusicBrainz/Wikidata. Off = only your server is contacted; the file year is used as-is.',
     cardsToWin: 'Cards to win',
     difficulty: 'Difficulty',
     diffHits: 'Hits',
