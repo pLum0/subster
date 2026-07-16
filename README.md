@@ -50,7 +50,7 @@ No physical cards, no accounts, **no backend** — just your phone and your own 
 - ✅ Installable as a **PWA** (offline app shell) and as an **Android APK**; on Android the song keeps
   playing with the screen off via a native media session (lock-screen controls)
 - ✅ English + German UI
-- ⏳ Later: gyro/clip start modes, PRO/EXPERT/Teamwork modes, multi-device real-time play (Trystero P2P)
+- ⏳ Later: PRO/EXPERT/Teamwork modes, multi-device real-time play (Trystero P2P)
 
 ## Develop
 
