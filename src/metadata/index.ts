@@ -8,6 +8,7 @@ import {
   yearFromReleaseGroupSearch,
   type RecordingYear,
 } from './musicbrainz'
+import { yearFromWikidata } from './wikidata'
 
 export { searchTrack } from './deezer'
 export type { RecordingYear } from './musicbrainz'
@@ -57,12 +58,20 @@ export async function resolveOriginalYear(
 
   if (live) return { live: true }
 
-  // 5. Refine with the earliest release across ALL recordings of this song.
-  // This corrects files tagged with a later comp/mix year (e.g. a "Butch Vig
-  // Mix" off a 2004 compilation → the song's 1991 first release). min() can
-  // only move the year earlier, never wrong-late.
-  const searchYear = await earliestRecordingYear(song.artist, song.title)
-  const candidates = [year, searchYear].filter((y): y is number => y !== undefined)
+  // 5. Refine with the earliest recording year (MusicBrainz), which corrects
+  // files tagged with a later comp/mix year (e.g. a "Butch Vig Mix" off a 2004
+  // compilation → the song's 1991 first release).
+  //
+  // Only when MusicBrainz has NO clean studio year from the recording's own
+  // release-groups (`year` is undefined) is the song likely old / comp-only /
+  // poorly catalogued — the case where Wikidata's published year helps (e.g. a
+  // 1936 chanson MusicBrainz dates 1992). Gating on that keeps the common,
+  // well-tagged song at zero extra fetches. min() only moves the year earlier.
+  const [searchYear, wdYear] = await Promise.all([
+    earliestRecordingYear(song.artist, song.title),
+    year === undefined ? yearFromWikidata(song.artist, song.title) : Promise.resolve(undefined),
+  ])
+  const candidates = [year, searchYear, wdYear].filter((y): y is number => y !== undefined)
   if (candidates.length) return { year: Math.min(...candidates), live: false }
 
   // 6. Still nothing → original release-group search (singles named after the song).
