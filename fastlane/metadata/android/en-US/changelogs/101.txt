@@ -1,0 +1,6 @@
+• Build the deck from a Subsonic playlist — hand-picked lists play as-is
+• New online-metadata toggle: off = only your server is contacted (file years, no Deezer/MusicBrainz/Wikidata)
+• Optional local (LAN) server address with automatic fallback
+• "All libraries" deck source
+• Better original years: version/mix qualifiers stripped, Wikidata fallback for old songs
+• Skipped songs are revealed before moving on

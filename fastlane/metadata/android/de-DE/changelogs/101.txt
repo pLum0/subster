@@ -1,0 +1,6 @@
+• Kartenstapel aus einer Subsonic-Playlist — handverlesene Listen spielen wie sie sind
+• Neuer Schalter für Online-Metadaten: aus = nur dein Server wird kontaktiert (Datei-Jahre, kein Deezer/MusicBrainz/Wikidata)
+• Optionale lokale (LAN-)Serveradresse mit automatischem Fallback
+• Quelle „Alle Bibliotheken"
+• Bessere Original-Jahre: Mix-/Remaster-Zusätze werden ignoriert, Wikidata als Quelle für alte Songs
+• Übersprungene Songs werden vor dem Weiterspielen aufgedeckt
