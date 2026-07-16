@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!-- Debug builds get a distinct name so both installs are distinguishable. -->
+<resources>
+    <string name="app_name">Subster Dev</string>
+    <string name="title_activity_main">Subster Dev</string>
+</resources>

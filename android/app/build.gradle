@@ -38,6 +38,11 @@ android {
                 signingConfig signingConfigs.release
             }
         }
+        debug {
+            // Dev builds install alongside the release app (e.g. from
+            // Obtainium) instead of conflicting with its signature.
+            applicationIdSuffix ".dev"
+        }
     }
 }
 
