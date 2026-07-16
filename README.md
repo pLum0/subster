@@ -24,8 +24,14 @@ No physical cards, no accounts, **no backend** — just your phone and your own 
 
 **A fully playable pass-and-play game on one phone** (milestones 1–3 plus most of the ruleset):
 
-- ✅ Subsonic connection (token auth) + connection test
-- ✅ **Library picker** — draw from a chosen music folder (e.g. skip your Audiobooks library)
+- ✅ Subsonic connection (token auth) + connection test, with an optional **local (LAN) address**
+  that is preferred automatically whenever it answers (the home screen shows "· LAN" when active)
+- ✅ **Deck sources** — a music folder ("All libraries" included, e.g. skip your Audiobooks library)
+  or **any Subsonic playlist**: hand-picked lists play as-is (shuffled, file years, no ranking),
+  though the full pipeline can be re-enabled on top
+- ✅ **Online-metadata toggle** — switch off and **only your own server is contacted**: no
+  Deezer/MusicBrainz/Wikidata at all (guaranteed by tests), file years as-is, and the bundled
+  curated canon still works since it's offline data
 - ✅ **Original release year** via [MusicBrainz](https://musicbrainz.org/): a song's file year is often
   a remaster/compilation year, so we look the recording up (by its MusicBrainz ID → ISRC → Deezer ISRC →
   fuzzy text, in that order) and take the earliest recording date. (e.g. "The Boxer" tagged 1991 on a
@@ -74,6 +80,10 @@ Prefer an **https** server URL: with plain `http`, the token (which grants API a
 audio travel unencrypted through your network. The app shows a warning when you enter an `http://`
 URL but still allows it, since LAN-only setups are common.
 
+Optionally add a **local address** (e.g. `http://192.168.1.20:4533`): on each start the app pings
+it briefly and uses it when reachable — fast and direct at home, automatic fallback to the server
+URL when away. The home screen appends "· LAN" to the server name while the local address is in use.
+
 - **Audio** streams via `stream.view` into an `<audio>` element, and **cover art** via
   `getCoverArt.view` into `<img>`. Neither is affected by CORS.
 - **The JSON API calls** (`ping`, `getRandomSongs`, `getGenres`, …) are `fetch` requests, which
@@ -106,8 +116,9 @@ title, and ISRC** of candidate songs from your library to three public APIs:
 
 Nothing else leaves your device: no user identity, no server address, no listening history. All
 APIs are contacted over https, and every lookup is cached locally so repeat games re-send nothing.
-If that tradeoff isn't for you, the deck still works without them — songs fall back to the file's
-tagged year and "unknown" popularity.
+If that tradeoff isn't for you, switch **Online metadata off** in the game setup: then Subster
+contacts **only your own server** — file-tagged years are used as-is and the bundled curated canon
+provides the recognizability signal. (Playlists default to this mode.)
 
 ### First run is slower
 
@@ -133,6 +144,9 @@ npx cap sync android
 cd android && ./gradlew assembleDebug
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
+
+Debug builds install as **`app.subster.dev`** ("Subster Dev", teal icon) alongside a release
+install, so a dev build never conflicts with the app you update via releases/Obtainium.
 
 ## Releases
 

@@ -1,0 +1,4 @@
+• "All libraries" deck source
+• Android back gesture handled: navigates back instead of closing the app; a running game needs a second swipe to quit; canceling deck preparation returns to setup
+• Home screen shows "· LAN" while the local server address is in use
+• Online-metadata hint reflects the toggle state; toggle moved above difficulty

@@ -1,0 +1,4 @@
+• Quelle „Alle Bibliotheken"
+• Android-Zurück-Geste: navigiert zurück statt die App zu schließen; ein laufendes Spiel braucht ein zweites Wischen zum Beenden; Abbruch der Deck-Vorbereitung führt zur Einrichtung zurück
+• Startbildschirm zeigt „· LAN", solange die lokale Serveradresse genutzt wird
+• Online-Metadaten-Hinweis folgt dem Schalter; Schalter über die Schwierigkeit verschoben
