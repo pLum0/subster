@@ -260,7 +260,9 @@ export function GameSetup() {
           <div className="flex items-center justify-between gap-3">
             <button type="button" className="flex-1 text-left" onClick={() => setOnlineMeta((v) => !v)}>
               {t.setup.onlineMeta}
-              <span className="mt-0.5 block text-xs text-slate-500">{t.setup.onlineMetaHint}</span>
+              <span className="mt-0.5 block text-xs text-slate-500">
+                {onlineMeta ? t.setup.onlineMetaOnHint : t.setup.onlineMetaOffHint}
+              </span>
             </button>
             <button
               type="button"

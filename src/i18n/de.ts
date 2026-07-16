@@ -46,8 +46,9 @@ export const de: Dict = {
     playlists: 'Playlists',
     playlistSongs: (n: number) => `${n} Songs`,
     onlineMeta: 'Online-Metadaten',
-    onlineMetaHint:
-      'Bekanntheit über Deezer, Jahreskorrektur über MusicBrainz/Wikidata. Aus = nur dein Server wird kontaktiert; das Datei-Jahr wird direkt verwendet.',
+    onlineMetaOnHint:
+      'Bekanntheit kommt von Deezer, Jahre werden über MusicBrainz/Wikidata korrigiert.',
+    onlineMetaOffHint: 'Nur dein Server wird kontaktiert — die Datei-Jahre werden direkt verwendet.',
     cardsToWin: 'Karten zum Sieg',
     difficulty: 'Schwierigkeit',
     diffHits: 'Hits',

@@ -53,8 +53,9 @@ export const en = {
     playlists: 'Playlists',
     playlistSongs: (n: number) => `${n} songs`,
     onlineMeta: 'Online metadata',
-    onlineMetaHint:
-      'Rank popularity via Deezer and correct years via MusicBrainz/Wikidata. Off = only your server is contacted; the file year is used as-is.',
+    onlineMetaOnHint:
+      'Popularity is ranked via Deezer and years are corrected via MusicBrainz/Wikidata.',
+    onlineMetaOffHint: 'Only your server is contacted — file years are used as-is.',
     cardsToWin: 'Cards to win',
     difficulty: 'Difficulty',
     diffHits: 'Hits',
