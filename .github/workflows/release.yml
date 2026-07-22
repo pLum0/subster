@@ -39,13 +39,18 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - name: Derive version from tag
+      # Versions live in android/app/build.gradle (F-Droid builds from the tag,
+      # so the repo must carry them). The tag must match, or the release stops.
+      - name: Check tag matches gradle versionName
         id: version
         run: |
           TAG="${GITHUB_REF_NAME#v}"
-          IFS=. read -r MAJOR MINOR PATCH <<< "$TAG"
+          GRADLE_NAME=$(sed -n 's/^\s*versionName "\(.*\)"/\1/p' android/app/build.gradle)
+          if [ "$TAG" != "$GRADLE_NAME" ]; then
+            echo "Tag v$TAG does not match build.gradle versionName $GRADLE_NAME — run scripts/release.sh" >&2
+            exit 1
+          fi
           echo "name=$TAG" >> "$GITHUB_OUTPUT"
-          echo "code=$((MAJOR * 10000 + MINOR * 100 + PATCH))" >> "$GITHUB_OUTPUT"
 
       - name: Decode release keystore
         run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/release.keystore"
@@ -59,9 +64,7 @@ jobs:
         run: |
           npx cap sync android
           cd android
-          ./gradlew assembleRelease --no-daemon \
-            -PappVersionName="${{ steps.version.outputs.name }}" \
-            -PappVersionCode="${{ steps.version.outputs.code }}"
+          ./gradlew assembleRelease --no-daemon
 
       - name: Package artifacts
         run: |

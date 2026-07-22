@@ -1,0 +1,44 @@
+# F-Droid build metadata for Subster.
+#
+# This file is a maintained DRAFT: the authoritative copy lives in the
+# fdroiddata repo (gitlab.com/fdroid/fdroiddata → metadata/app.subster.yml).
+# See SUBMISSION.md next to this file for the submission steps.
+Categories:
+  - Games
+  - Multimedia
+License: MIT
+AuthorName: Rouven Volkmann
+WebSite: https://github.com/pLum0/subster
+SourceCode: https://github.com/pLum0/subster
+IssueTracker: https://github.com/pLum0/subster/issues
+Changelog: https://github.com/pLum0/subster/releases
+
+AutoName: Subster
+
+RepoType: git
+Repo: https://github.com/pLum0/subster.git
+
+Builds:
+  - versionName: 0.1.5
+    versionCode: 105
+    commit: v0.1.5
+    subdir: android/app
+    sudo:
+      # Vite 5 needs Node >= 18; the buildserver's stable npm is too old.
+      - echo "deb https://deb.debian.org/debian trixie main" > /etc/apt/sources.list.d/trixie.list
+      - apt-get update
+      - apt-get install -y -t trixie npm
+    gradle:
+      - yes
+    prebuild:
+      - cd ../..
+      - npm ci
+      - npm run build
+      - npx cap sync android
+    scandelete:
+      - node_modules
+
+AutoUpdateMode: Version
+UpdateCheckMode: Tags ^v[0-9]+\.[0-9]+\.[0-9]+$
+CurrentVersion: 0.1.5
+CurrentVersionCode: 105
