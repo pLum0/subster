@@ -4,7 +4,7 @@
 # fdroiddata repo (gitlab.com/fdroid/fdroiddata → metadata/app.subster.yml).
 # See SUBMISSION.md next to this file for the submission steps.
 Categories:
-  - Games
+  - Party Game
   - Multimedia
 License: MIT
 AuthorName: Rouven Volkmann

@@ -1,0 +1,2 @@
+• Vorbereitung für F-Droid: Die App-Version wird jetzt im Repository geführt, damit F-Droid Releases direkt aus Git-Tags bauen kann
+• Keine Gameplay-Änderungen

@@ -1,0 +1,2 @@
+• Groundwork for F-Droid inclusion: the app version is now tracked in the repository so F-Droid can build releases straight from git tags
+• No gameplay changes
