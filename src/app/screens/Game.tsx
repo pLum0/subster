@@ -16,7 +16,7 @@ import { useT } from '../../i18n'
 export function Game() {
   const navigate = useNavigate()
   const t = useT()
-  const { game, status, dealt, error, countdown, placeCountdown, clipEnded, quitHint, place, skip, openChallenges, challenge, unchallenge, reveal, awardNaming, nextTurn, toggleAudio, quit } =
+  const { game, status, dealt, error, countdown, placeCountdown, clipEnded, quitHint, waitingForCards, place, skip, openChallenges, challenge, unchallenge, reveal, awardNaming, nextTurn, toggleAudio, quit } =
     useGameStore()
 
   // Which challenger is currently armed to place/adjust a bet.
@@ -299,16 +299,19 @@ export function Game() {
               </Button>
             )}
             <Button
+              disabled={waitingForCards}
               onClick={() => {
                 if (named) awardNaming()
                 nextTurn()
               }}
             >
-              {game.winnerId
-                ? t.game.seeResult
-                : lastResult === 'skipped' || lastResult === 'broken' || game.players.length === 1
-                  ? t.game.nextSong
-                  : t.game.nextPlayer}
+              {waitingForCards
+                ? t.game.waitingForCards
+                : game.winnerId
+                  ? t.game.seeResult
+                  : lastResult === 'skipped' || lastResult === 'broken' || game.players.length === 1
+                    ? t.game.nextSong
+                    : t.game.nextPlayer}
             </Button>
           </div>
         </>

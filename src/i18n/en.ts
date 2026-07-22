@@ -128,6 +128,7 @@ export const en = {
     namedOff: (name: string) => `🎤 ${name} named title + artist?`,
     nextPlayer: 'Next player →',
     nextSong: 'Next song →',
+    waitingForCards: 'Loading more songs…',
     seeResult: 'See result →',
     revealLine: (kind: RevealKind, name: string): string => {
       switch (kind) {

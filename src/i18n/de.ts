@@ -120,6 +120,7 @@ export const de: Dict = {
     namedOff: (name: string) => `🎤 Hat ${name} Titel + Interpret genannt?`,
     nextPlayer: 'Nächster Spieler →',
     nextSong: 'Nächster Song →',
+    waitingForCards: 'Mehr Songs werden geladen…',
     seeResult: 'Ergebnis ansehen →',
     revealLine: (kind, name) => {
       switch (kind) {

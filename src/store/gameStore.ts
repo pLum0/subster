@@ -47,6 +47,12 @@ const DEFAULT_PLAYBACK: PlaybackSettings = {
 // The transport is the authoritative state holder; kept outside zustand.
 let transport: Transport | null = null
 let producerToken = 0
+// True while the background deck producers are still resolving songs. When the
+// deck momentarily runs dry (a fast player outpaces slow metadata lookups),
+// NEXT_TURN must wait for the next ADD_CARDS instead of letting the reducer
+// declare deck exhaustion and end the game.
+let producing = false
+let pendingNextTurn = false
 // Remembered for "rematch".
 let lastDeck: DeckOptions = {}
 let lastNames: string[] = []
@@ -77,6 +83,8 @@ interface GameStore {
   clipEnded: boolean
   /** Brief "swipe back again to quit" hint (Android back gesture). */
   quitHint: boolean
+  /** Deck ran dry but more songs are still being resolved — next turn pending. */
+  waitingForCards: boolean
 
   startGame: (opts: StartGameOptions) => Promise<void>
   /** Show the quit hint for ~2s (first back swipe during a game). */
@@ -205,6 +213,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     placeCountdown: null,
     clipEnded: false,
     quitHint: false,
+    waitingForCards: false,
 
     flashQuitHint() {
       if (quitHintTimer) clearTimeout(quitHintTimer)
@@ -224,7 +233,9 @@ export const useGameStore = create<GameStore>((set, get) => {
       playback = pb
 
       const myToken = ++producerToken
-      set({ status: 'building', dealt: 0, error: null })
+      producing = true
+      pendingNextTurn = false
+      set({ status: 'building', dealt: 0, error: null, waitingForCards: false })
 
       const rng = Math.random
       // With online metadata off, only the user's own server may be contacted:
@@ -287,6 +298,12 @@ export const useGameStore = create<GameStore>((set, get) => {
         batch = []
         if (ordered.length) lastArtist = ordered[ordered.length - 1]?.artist
         transport?.dispatch({ type: 'ADD_CARDS', songs: ordered })
+        // A player was waiting on an empty deck — resume their next turn now.
+        if (pendingNextTurn) {
+          pendingNextTurn = false
+          set({ waitingForCards: false })
+          get().nextTurn()
+        }
       }
 
       const emittedIds = new Set<string>()
@@ -300,7 +317,8 @@ export const useGameStore = create<GameStore>((set, get) => {
           if (initial.length >= minToStart) signalStart()
         } else {
           batch.push(card)
-          if (batch.length >= BG_BATCH) flushBatch()
+          // Flush immediately when someone is stuck waiting for the deck.
+          if (batch.length >= BG_BATCH || pendingNextTurn) flushBatch()
         }
       }
 
@@ -364,7 +382,19 @@ export const useGameStore = create<GameStore>((set, get) => {
         flushBatch()
       }
 
-      Promise.allSettled([produce(), produceCurated()]).finally(() => signalStart())
+      Promise.allSettled([produce(), produceCurated()]).finally(() => {
+        if (producerToken === myToken) {
+          producing = false
+          // Producers are done for good; a still-pending next turn now really
+          // exhausts the deck (the reducer ends the game properly).
+          if (pendingNextTurn) {
+            pendingNextTurn = false
+            set({ waitingForCards: false })
+            get().nextTurn()
+          }
+        }
+        signalStart()
+      })
       await startSignal
 
       if (producerToken !== myToken) return
@@ -437,6 +467,15 @@ export const useGameStore = create<GameStore>((set, get) => {
     },
 
     nextTurn() {
+      const g = get().game
+      // Deck momentarily dry while songs are still being resolved: hold this
+      // turn until the next ADD_CARDS instead of ending the game. (A decided
+      // winner still proceeds to gameover regardless of the deck.)
+      if (!g.winnerId && producing && g.deckIndex >= g.deck.length) {
+        pendingNextTurn = true
+        set({ waitingForCards: true })
+        return
+      }
       transport?.dispatch({ type: 'NEXT_TURN' })
       if (get().game.phase === 'gameover') {
         clearCountdown()
@@ -464,6 +503,7 @@ export const useGameStore = create<GameStore>((set, get) => {
 
     quit() {
       producerToken++
+      pendingNextTurn = false
       clearCountdown()
       if (quitHintTimer) clearTimeout(quitHintTimer)
       audioPlayer.stop()
@@ -478,6 +518,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         placeCountdown: null,
         clipEnded: false,
         quitHint: false,
+        waitingForCards: false,
       })
     },
   }
