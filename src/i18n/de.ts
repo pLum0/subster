@@ -32,6 +32,10 @@ export const de: Dict = {
     networkErrorNative: 'Der Server ist nicht erreichbar — prüfe Adresse und Netzwerk.',
     privacy:
       'Nur dieses Gerät speichert die Zugangsdaten, und nur als gesalzenen Token — nie das Klartext-Passwort. Wenn der Server auf einer anderen Domain liegt und der Test fehlschlägt, ist es fast immer CORS (siehe README).',
+    clearCaches: 'Metadaten-Cache leeren',
+    cachesCleared: (n: number) => `✓ ${n} Einträge gelöscht`,
+    clearCachesHint:
+      'Gespeicherte Deezer/MusicBrainz/Wikidata-Abfragen verfallen nie. Leere sie, wenn ein falsches Jahr oder Ranking an der Quelle korrigiert wurde — das nächste Deck holt alles frisch. Serververbindung und Einstellungen bleiben erhalten.',
   },
   setup: {
     title: 'Neues Spiel',

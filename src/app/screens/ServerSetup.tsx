@@ -5,6 +5,7 @@ import { Layout } from '../Layout'
 import { Button } from '../../ui/Button'
 import { useConfigStore } from '../../store/configStore'
 import { deriveAuth, ping } from '../../subsonic/client'
+import { JsonCache } from '../../lib/cache'
 import { useT } from '../../i18n'
 
 export function ServerSetup() {
@@ -19,6 +20,7 @@ export function ServerSetup() {
   const [password, setPassword] = useState('')
   const [status, setStatus] = useState<'idle' | 'testing' | 'error'>('idle')
   const [error, setError] = useState('')
+  const [cachesCleared, setCachesCleared] = useState<number | null>(null)
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -142,6 +144,10 @@ export function ServerSetup() {
               {t.server.disconnect}
             </Button>
           )}
+          <Button type="button" variant="ghost" onClick={() => setCachesCleared(JsonCache.clearAll())}>
+            {cachesCleared != null ? t.server.cachesCleared(cachesCleared) : t.server.clearCaches}
+          </Button>
+          <span className="text-xs text-slate-500">{t.server.clearCachesHint}</span>
         </div>
       </form>
     </Layout>

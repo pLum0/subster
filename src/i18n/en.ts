@@ -39,6 +39,10 @@ export const en = {
     networkErrorNative: 'Could not reach the server — check the address and your network.',
     privacy:
       'Only this device stores the credentials, and only as a salted token — never the raw password. If the server is on another domain and the test fails, it is almost always CORS (see the README).',
+    clearCaches: 'Clear metadata caches',
+    cachesCleared: (n: number) => `✓ ${n} cached entries cleared`,
+    clearCachesHint:
+      'Cached Deezer/MusicBrainz/Wikidata lookups never expire. Clear them when a wrong year or ranking has been fixed at the source — the next deck build re-fetches everything fresh. Server connection and settings are kept.',
   },
   setup: {
     title: 'New game',
