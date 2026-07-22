@@ -52,6 +52,51 @@ describe('yearFromWikidata', () => {
     expect(await settled(yearFromWikidata('Jean Sablon', 'Vous qui passez sans me voir'))).toBe(1936)
   })
 
+  it('accepts an entity found via an alias when the label differs', async () => {
+    // Real case: Ray Charles's song is labeled "I've Got a Woman" on Wikidata,
+    // but the search matches the file title through its "I Got a Woman" alias.
+    stubFlow(
+      {
+        search: [
+          {
+            id: 'Q1988441',
+            label: "I've Got a Woman",
+            description: 'song written and composed by Ray Charles and Renald Richard',
+            match: { type: 'alias', text: 'I Got a Woman' },
+          },
+        ],
+      },
+      {
+        entities: {
+          Q1988441: {
+            claims: {
+              P31: [{ mainsnak: { datavalue: { value: { id: 'Q105543609' } } } }],
+              P577: [{ mainsnak: { datavalue: { value: { time: '+1954-00-00T00:00:00Z' } } } }],
+            },
+          },
+        },
+      },
+    )
+    expect(await settled(yearFromWikidata('Ray Charles', 'I got a woman'))).toBe(1954)
+  })
+
+  it('rejects an entity whose label AND matched alias both differ from the title', async () => {
+    stubFlow(
+      {
+        search: [
+          {
+            id: 'Q8',
+            label: 'I Got a Woman and Some Blues',
+            description: 'album by X',
+            match: { type: 'label', text: 'I Got a Woman and Some Blues' },
+          },
+        ],
+      },
+      { entities: {} },
+    )
+    expect(await settled(yearFromWikidata('X', 'I Got a Woman'))).toBeUndefined()
+  })
+
   it('rejects a same-title song by a different artist', async () => {
     // Wikidata has "De temps en temps" as a 2007 Grégory Lemarchal single — not
     // Joséphine Baker's — so the artist-in-description check must reject it.

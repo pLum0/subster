@@ -11,9 +11,11 @@ import { rateLimit } from '../lib/throttle'
  *
  * Matching is deliberately strict: many songs share a title (Wikidata has a
  * 2007 "De temps en temps" by Grégory Lemarchal that is NOT Joséphine Baker's),
- * so a candidate must (a) have the exact base title, (b) mention the artist in
- * its description, and (c) be typed as a song/single/composition. On any doubt
- * we return nothing rather than risk a wrong-early year.
+ * so a candidate must (a) have the exact base title as its label — or as the
+ * alias the search matched on (Ray Charles's "I've Got a Woman" is found via
+ * its "I Got a Woman" alias) — (b) mention the artist in its description, and
+ * (c) be typed as a song/single/composition. On any doubt we return nothing
+ * rather than risk a wrong-early year.
  */
 const WD = 'https://www.wikidata.org/w/api.php'
 
@@ -27,7 +29,8 @@ const SONG_TYPES = new Set([
   'Q4132319', // composition
 ])
 
-const yearCache = new JsonCache<number | null>('wd-year-v1')
+// v2: v1 predates alias matching — retry its cached misses.
+const yearCache = new JsonCache<number | null>('wd-year-v2')
 
 // Wikimedia asks CORS clients to identify via Api-User-Agent (the real
 // User-Agent header is forbidden in browsers; harmless to also send natively).
@@ -57,7 +60,13 @@ function stripQualifiers(s: string): string {
 }
 
 interface SearchResult {
-  search?: Array<{ id: string; label?: string; description?: string }>
+  search?: Array<{
+    id: string
+    label?: string
+    description?: string
+    /** What the search engine matched on — the label, or one of the aliases. */
+    match?: { type?: string; text?: string }
+  }>
 }
 interface Snak {
   mainsnak?: { datavalue?: { value?: { id?: string; time?: string } } }
@@ -84,12 +93,14 @@ export async function yearFromWikidata(artist: string, title: string): Promise<n
     )
     if (!sres.ok) return undefined // don't poison the cache on a transient error
     const sdata = (await sres.json()) as SearchResult
-    // Keep only candidates whose title matches AND whose description names the
-    // artist (rejects same-title songs by someone else).
+    // Keep only candidates whose title matches — by label, or by the alias the
+    // search matched on — AND whose description names the artist (rejects
+    // same-title songs by someone else).
     const ids = (sdata.search ?? [])
       .filter(
         (e) =>
-          norm(stripQualifiers(e.label ?? '')) === wantTitle &&
+          (norm(stripQualifiers(e.label ?? '')) === wantTitle ||
+            norm(stripQualifiers(e.match?.text ?? '')) === wantTitle) &&
           norm(e.description ?? '').includes(wantArtist),
       )
       .map((e) => e.id)
