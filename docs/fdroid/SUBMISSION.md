@@ -1,7 +1,10 @@
 # Submitting Subster to F-Droid
 
-Status: prepared, not yet submitted. The build recipe draft is
-[`app.subster.yml`](app.subster.yml) in this directory.
+Status: **submitted 2026-07-22** —
+<https://gitlab.com/fdroid/fdroiddata/-/merge_requests/43590> (fork:
+`gitlab.com/pLum0/f-droid-data`, branch `app.subster`; fork CI fully green
+incl. `fdroid build` before submission). Awaiting review. The maintained
+recipe draft is [`app.subster.yml`](app.subster.yml) in this directory.
 
 ## Prerequisites (already in place)
 
