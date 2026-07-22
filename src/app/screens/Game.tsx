@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Layout } from '../Layout'
 import { Button } from '../../ui/Button'
+import { SongActions } from '../../ui/SongActions'
 import { SongCard } from '../../ui/SongCard'
 import { Timeline } from '../../ui/Timeline'
 import { TokenBar } from '../../ui/TokenBar'
@@ -166,6 +167,9 @@ export function Game() {
           placeCountdown={placeCountdown}
           disabled={clipEnded}
           onToggle={toggleAudio}
+          actions={
+            revealed && lastResult !== 'broken' ? <SongActions song={game.turn.song} /> : undefined
+          }
         />
       </div>
 

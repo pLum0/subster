@@ -115,6 +115,15 @@ export const en = {
     broken: '⚠ This song could not be played',
     brokenHint:
       'The audio file appears to be broken — consider fixing or replacing it in your library. No token was spent; the next song is on the house.',
+    // Icon-button aria labels + playlist-picker row feedback.
+    like: 'Add to favorites',
+    unlike: 'Remove from favorites',
+    addToPlaylist: 'Add to playlist',
+    addedToPlaylist: '✓ added',
+    alreadyInPlaylist: 'already in it',
+    removedFromPlaylist: 'removed',
+    addFailed: 'not allowed',
+    noPlaylists: 'No playlists on the server yet.',
     namedOn: '✓ Named title + artist (+1 token)',
     namedOff: (name: string) => `🎤 ${name} named title + artist?`,
     nextPlayer: 'Next player →',

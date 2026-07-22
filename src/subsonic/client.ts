@@ -18,6 +18,8 @@ export interface Song {
   musicBrainzId?: string
   /** OpenSubsonic ISRC(s) — the server may return several. */
   isrc?: string[]
+  /** Whether the song is starred ("Liked Songs" / favorites) on the server. */
+  starred?: boolean
 }
 
 export interface Genre {
@@ -76,13 +78,16 @@ function authParams(config: ServerConfig): Record<string, string> {
 export function buildUrl(
   config: ServerConfig,
   endpoint: string,
-  params: Record<string, string | number | undefined> = {},
+  params: Record<string, string | number | undefined | Array<string | number>> = {},
 ): string {
   const base = config.baseUrl.replace(/\/+$/, '')
   const url = new URL(`${base}/rest/${endpoint}`)
   const all = { ...authParams(config), ...params }
   for (const [key, value] of Object.entries(all)) {
-    if (value !== undefined && value !== '') url.searchParams.set(key, String(value))
+    if (value === undefined || value === '') continue
+    // Arrays become repeated params (e.g. several songIndexToRemove).
+    if (Array.isArray(value)) for (const v of value) url.searchParams.append(key, String(v))
+    else url.searchParams.set(key, String(value))
   }
   return url.toString()
 }
@@ -131,6 +136,8 @@ interface RawSong {
   musicBrainzId?: string
   // OpenSubsonic may return isrc as a string or an array of strings.
   isrc?: string | string[]
+  // ISO timestamp when starred, absent otherwise.
+  starred?: string
 }
 
 interface RawGenre {
@@ -145,7 +152,7 @@ interface RawGenre {
 async function apiFetch(
   config: ServerConfig,
   endpoint: string,
-  params: Record<string, string | number | undefined> = {},
+  params: Record<string, string | number | undefined | Array<string | number>> = {},
 ): Promise<NonNullable<SubsonicEnvelope['subsonic-response']>> {
   let res: Response
   try {
@@ -194,6 +201,7 @@ function toSong(raw: RawSong): Song {
     coverArt: raw.coverArt,
     musicBrainzId: raw.musicBrainzId,
     isrc: raw.isrc ? (Array.isArray(raw.isrc) ? raw.isrc : [raw.isrc]) : undefined,
+    starred: raw.starred != null || undefined,
   }
 }
 
@@ -281,6 +289,44 @@ export async function getPlaylists(config: ServerConfig): Promise<Playlist[]> {
     name: p.name ?? String(p.id),
     songCount: p.songCount ?? 0,
   }))
+}
+
+/** Star ("like") or unstar a song — Navidrome shows starred songs as favorites. */
+export async function setSongStarred(
+  config: ServerConfig,
+  id: string,
+  starred: boolean,
+): Promise<void> {
+  await apiFetch(config, starred ? 'star.view' : 'unstar.view', { id })
+}
+
+/** Append a song to an existing playlist. */
+export async function addSongToPlaylist(
+  config: ServerConfig,
+  playlistId: string,
+  songId: string,
+): Promise<void> {
+  await apiFetch(config, 'updatePlaylist.view', { playlistId, songIdToAdd: songId })
+}
+
+/**
+ * Remove a song from a playlist. The Subsonic API removes by *position*, so
+ * the playlist is fetched first and every occurrence of the song is removed
+ * (one call — the indices refer to the playlist as it currently is).
+ * Returns false when the song wasn't in the playlist.
+ */
+export async function removeSongFromPlaylist(
+  config: ServerConfig,
+  playlistId: string,
+  songId: string,
+): Promise<boolean> {
+  const body = await apiFetch(config, 'getPlaylist.view', { id: playlistId })
+  const indices = (body.playlist?.entry ?? [])
+    .map((e, i) => (e.id === songId ? i : -1))
+    .filter((i) => i >= 0)
+  if (!indices.length) return false
+  await apiFetch(config, 'updatePlaylist.view', { playlistId, songIndexToRemove: indices })
+  return true
 }
 
 /** The songs of one playlist, deduped (a playlist may repeat a track). */

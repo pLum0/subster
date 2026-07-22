@@ -1,12 +1,15 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
+  addSongToPlaylist,
   ApiError,
   buildUrl,
   getPlaylists,
   getPlaylistSongs,
   getRandomSongs,
   ping,
+  removeSongFromPlaylist,
   resolveEffectiveServer,
+  setSongStarred,
 } from './client'
 import type { ServerConfig } from '../store/configStore'
 
@@ -202,5 +205,90 @@ describe('song normalization (toSong via getRandomSongs)', () => {
     expect(songs[1]!.title).toBe('Unknown title')
     expect(songs[1]!.artist).toBe('Unknown artist')
     expect(songs[1]!.year).toBeUndefined()
+  })
+
+  it('maps a starred timestamp to a boolean and its absence to undefined', async () => {
+    const body = {
+      'subsonic-response': {
+        status: 'ok',
+        randomSongs: {
+          song: [
+            { id: '1', starred: '2026-07-01T10:00:00Z' },
+            { id: '2' },
+          ],
+        },
+      },
+    }
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(body)))
+
+    const songs = await getRandomSongs(config)
+    expect(songs[0]!.starred).toBe(true)
+    expect(songs[1]!.starred).toBeUndefined()
+  })
+})
+
+describe('song actions', () => {
+  const okBody = { 'subsonic-response': { status: 'ok' } }
+
+  it('setSongStarred hits star.view / unstar.view with the song id', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(okBody))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await setSongStarred(config, 's1', true)
+    expect(fetchMock.mock.calls[0]![0]).toContain('/rest/star.view')
+    expect(fetchMock.mock.calls[0]![0]).toContain('id=s1')
+
+    await setSongStarred(config, 's1', false)
+    expect(fetchMock.mock.calls[1]![0]).toContain('/rest/unstar.view')
+  })
+
+  it('addSongToPlaylist appends via updatePlaylist songIdToAdd', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(okBody))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await addSongToPlaylist(config, 'pl9', 's7')
+    const url = fetchMock.mock.calls[0]![0] as string
+    expect(url).toContain('/rest/updatePlaylist.view')
+    expect(url).toContain('playlistId=pl9')
+    expect(url).toContain('songIdToAdd=s7')
+  })
+
+  it('removeSongFromPlaylist removes every occurrence by its index', async () => {
+    const playlistBody = {
+      'subsonic-response': {
+        status: 'ok',
+        playlist: { entry: [{ id: 'a' }, { id: 's7' }, { id: 'b' }, { id: 's7' }] },
+      },
+    }
+    const okBodyRes = jsonResponse(okBody)
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(playlistBody))
+      .mockResolvedValueOnce(okBodyRes)
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(removeSongFromPlaylist(config, 'pl9', 's7')).resolves.toBe(true)
+    const url = new URL(fetchMock.mock.calls[1]![0] as string)
+    expect(url.pathname).toContain('updatePlaylist.view')
+    expect(url.searchParams.getAll('songIndexToRemove')).toEqual(['1', '3'])
+  })
+
+  it('removeSongFromPlaylist is a no-op returning false when the song is absent', async () => {
+    const playlistBody = {
+      'subsonic-response': { status: 'ok', playlist: { entry: [{ id: 'a' }] } },
+    }
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(playlistBody))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(removeSongFromPlaylist(config, 'pl9', 's7')).resolves.toBe(false)
+    expect(fetchMock).toHaveBeenCalledTimes(1) // only the lookup, no update call
+  })
+
+  it('surfaces a not-allowed error (foreign playlist) as an ApiError', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(jsonResponse(failedEnvelope(50, 'not authorized'))),
+    )
+    await expect(addSongToPlaylist(config, 'pl9', 's7')).rejects.toBeInstanceOf(ApiError)
   })
 })

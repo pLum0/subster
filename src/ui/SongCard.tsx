@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import type { Song } from '../subsonic/client'
 import { useEffectiveServer } from '../store/configStore'
 import { coverArtUrl } from '../subsonic/client'
@@ -17,6 +18,7 @@ export function SongCard({
   placeCountdown,
   disabled,
   onToggle,
+  actions,
 }: {
   song: Song
   revealed: boolean
@@ -31,6 +33,8 @@ export function SongCard({
   disabled?: boolean
   /** Tap the mystery card to play/pause. */
   onToggle?: () => void
+  /** Overlay rendered top-right on the revealed card (e.g. like/playlist buttons). */
+  actions?: ReactNode
 }) {
   const server = useEffectiveServer()
   const t = useT()
@@ -85,15 +89,16 @@ export function SongCard({
         : ''
 
   return (
-    <div className={`w-60 overflow-hidden rounded-2xl bg-slate-800 shadow-xl ${ring}`}>
+    <div className={`relative w-60 rounded-2xl bg-slate-800 shadow-xl ${ring}`}>
+      {actions && <div className="absolute right-2 top-2 z-10">{actions}</div>}
       {server && song.coverArt ? (
         <img
           src={coverArtUrl(server, song.coverArt, 300)}
           alt=""
-          className="aspect-square w-full object-cover"
+          className="aspect-square w-full rounded-t-2xl object-cover"
         />
       ) : (
-        <div className="aspect-square w-full bg-slate-700" />
+        <div className="aspect-square w-full rounded-t-2xl bg-slate-700" />
       )}
       <div className="p-3 text-center">
         <div className="text-5xl font-black text-brand-400">{song.year}</div>
