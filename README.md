@@ -49,6 +49,9 @@ No physical cards, no accounts, **no backend** — just your phone and your own 
 - ✅ **Incremental deck**: the pool is ranked cheaply, then original years are resolved chunk by chunk —
   the first chunk lets play start; the rest fill in the background (Deezer/MusicBrainz calls are cached).
 - ✅ Core game: blind playback, timeline placement, reveal, win target (configurable)
+- ✅ **Keep your discoveries**: the game keeps surfacing pearls you forgot you had — on the reveal,
+  heart the song (server favorites, in sync with its starred state) or add it to any of your
+  playlists straight from the card (duplicates are detected; tap again to remove)
 - ✅ **Tokens & rules**: skip (1 token), **challenges** — other players bet a token on a different gap
   and steal the card if they're right (optional grace rule), **naming bonus** (+1 token for naming
   title + artist), equal-year placements count as correct

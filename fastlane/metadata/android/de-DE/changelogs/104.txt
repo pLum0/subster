@@ -1,0 +1,2 @@
+• Entdeckungen behalten: Aufgedeckte Songs direkt auf der Karte liken (Server-Favoriten) oder zu einer Playlist hinzufügen — Duplikate werden erkannt, erneutes Tippen entfernt wieder
+• Fälschlicher früher Sieg-Bildschirm behoben: Schnelle Spieler konnten den Stapel leeren, während noch Songs aufgelöst wurden — das Spiel zeigt jetzt kurz „Mehr Songs werden geladen…" und läuft weiter

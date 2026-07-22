@@ -1,0 +1,2 @@
+• Keep your discoveries: heart the revealed song (server favorites) or add it to any playlist right from the card — duplicates are detected, tapping again removes it
+• Fixed a bogus early victory screen: a fast player could drain the deck while songs were still being resolved — the game now briefly shows "Loading more songs…" and continues
