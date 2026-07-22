@@ -1,0 +1,3 @@
+• Broken audio files no longer stall the game: the song is revealed with a notice (so you know which file to fix), no token is spent, and the next song is free
+• Better original years: Wikidata lookups now also match a song's alias title (e.g. "I Got a Woman" → 1954)
+• "Clear metadata caches" button in the server settings — re-fetch everything fresh after upstream data fixes

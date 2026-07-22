@@ -1,0 +1,3 @@
+• Defekte Audiodateien blockieren das Spiel nicht mehr: Der Song wird mit Hinweis aufgedeckt (damit klar ist, welche Datei zu reparieren ist), kein Token verbraucht, der nächste Song geht aufs Haus
+• Bessere Original-Jahre: Wikidata-Abfragen matchen jetzt auch Alias-Titel (z. B. „I Got a Woman" → 1954)
+• „Metadaten-Cache leeren" in den Server-Einstellungen — nach Korrekturen an der Quelle alles frisch laden
