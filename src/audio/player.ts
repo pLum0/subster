@@ -15,13 +15,26 @@ class AudioPlayer {
   private el: HTMLAudioElement | null = null
   private clipHandler: (() => void) | null = null
   private fadeTimer: ReturnType<typeof setInterval> | null = null
+  private errorHandler: (() => void) | null = null
 
   private element(): HTMLAudioElement {
     if (!this.el) {
       this.el = new Audio()
+      this.el.addEventListener('error', () => {
+        // stop() empties the src, which also fires an error — ignore that.
+        if (this.el?.src) this.errorHandler?.()
+      })
       this.setupMediaSession()
     }
     return this.el
+  }
+
+  /**
+   * Called when the current source fails to load or decode (e.g. a corrupt
+   * file the WebView's demuxer rejects). One handler; the game store owns it.
+   */
+  onError(handler: (() => void) | null): void {
+    this.errorHandler = handler
   }
 
   /**

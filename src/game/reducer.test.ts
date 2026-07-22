@@ -150,6 +150,40 @@ describe('tokens', () => {
     expect(reducer(state, { type: 'SKIP' })).toEqual(state)
   })
 
+  it('BROKEN reveals the unplayable song for free, then NEXT_TURN redraws for the same player', () => {
+    const deck = [song('a', 1990), song('b', 1980), song('c', 1995), song('d', 2000)]
+    let state = start(deck, settings, 2, 0) // works even with zero tokens
+    state = reducer(state, { type: 'BROKEN' })
+    expect(state.players[0]!.tokens).toBe(0) // nothing spent
+    expect(state.phase).toBe('revealed') // broken song shown (which file to fix)
+    expect(state.turn.lastResult).toBe('broken')
+    expect(state.turn.song).toEqual(deck[2])
+    state = reducer(state, { type: 'NEXT_TURN' })
+    expect(state.turn.activePlayerIndex).toBe(0) // same player
+    expect(state.turn.song).toEqual(deck[3]) // fresh mystery
+    expect(state.phase).toBe('placing')
+  })
+
+  it('BROKEN refunds challenge tokens already bet on the unplayable song', () => {
+    const deck = [song('a', 1990), song('b', 1980), song('c', 1995), song('d', 2000)]
+    let state = start(deck, settings, 2, 1)
+    state = reducer(state, { type: 'PLACE', slot: 0 })
+    state = reducer(state, { type: 'OPEN_CHALLENGES' })
+    state = reducer(state, { type: 'CHALLENGE', playerIndex: 1, slot: 1 })
+    expect(state.players[1]!.tokens).toBe(0)
+    state = reducer(state, { type: 'BROKEN' })
+    expect(state.players[1]!.tokens).toBe(1) // bet refunded
+    expect(state.turn.challenges).toEqual([])
+    expect(state.turn.lastResult).toBe('broken')
+  })
+
+  it('BROKEN is a no-op outside placing/challenging', () => {
+    const deck = [song('a', 1990), song('b', 1980), song('c', 1995), song('d', 2000)]
+    let state = start(deck, settings, 2, 1)
+    state = reducer(state, { type: 'SKIP' }) // → revealed
+    expect(reducer(state, { type: 'BROKEN' })).toEqual(state)
+  })
+
   it('a correct challenge steals the card and refunds the token when the active player is wrong', () => {
     const deck = [song('a', 1990), song('b', 1980), song('c', 1970)]
     let state = start(deck, settings, 2, 2)

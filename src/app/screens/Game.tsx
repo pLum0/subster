@@ -160,7 +160,7 @@ export function Game() {
         <SongCard
           song={game.turn.song}
           revealed={revealed}
-          result={lastResult === 'skipped' ? null : lastResult}
+          result={lastResult === 'skipped' || lastResult === 'broken' ? null : lastResult}
           playing={playing}
           countdown={countdown}
           placeCountdown={placeCountdown}
@@ -252,12 +252,19 @@ export function Game() {
           <p className="px-1 pb-1 text-base font-semibold">
             {lastResult === 'skipped'
               ? t.game.skipped
-              : lastResult === 'correct'
-                ? t.game.correct
-                : stealer
-                  ? t.game.stole(stealer.name)
-                  : t.game.discarded}
+              : lastResult === 'broken'
+                ? t.game.broken
+                : lastResult === 'correct'
+                  ? t.game.correct
+                  : stealer
+                    ? t.game.stole(stealer.name)
+                    : t.game.discarded}
           </p>
+          {lastResult === 'broken' && (
+            <p className="mb-1 rounded-xl bg-amber-500/10 p-3 text-sm text-amber-200 ring-1 ring-amber-500/30">
+              {t.game.brokenHint}
+            </p>
+          )}
           {game.turn.reveal.length > 0 && (
             <div className="mb-1 flex flex-col gap-1 rounded-xl bg-slate-800/60 p-3">
               {game.turn.reveal.map((line, i) => (
@@ -278,7 +285,7 @@ export function Game() {
           )}
           <Timeline timeline={player.timeline} mode="view" />
           <div className="mt-auto flex flex-col gap-2 py-3">
-            {!game.winnerId && lastResult !== 'skipped' && player.tokens < MAX_TOKENS && (
+            {!game.winnerId && lastResult !== 'skipped' && lastResult !== 'broken' && player.tokens < MAX_TOKENS && (
               <Button
                 variant="secondary"
                 className={named ? 'bg-emerald-600/30 text-emerald-100 ring-2 ring-emerald-500' : ''}
@@ -295,7 +302,7 @@ export function Game() {
             >
               {game.winnerId
                 ? t.game.seeResult
-                : lastResult === 'skipped' || game.players.length === 1
+                : lastResult === 'skipped' || lastResult === 'broken' || game.players.length === 1
                   ? t.game.nextSong
                   : t.game.nextPlayer}
             </Button>

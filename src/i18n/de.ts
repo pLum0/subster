@@ -101,6 +101,9 @@ export const de: Dict = {
     stole: (name: string) => `✗ Falsch — ${name} schnappt sich die Karte!`,
     discarded: '✗ Knapp daneben — Karte verworfen',
     skipped: '⏭ Übersprungen — das war es',
+    broken: '⚠ Dieser Song konnte nicht abgespielt werden',
+    brokenHint:
+      'Die Audiodatei scheint defekt zu sein — am besten in der Bibliothek reparieren oder ersetzen. Kein Token verbraucht; der nächste Song geht aufs Haus.',
     namedOn: '✓ Titel + Interpret genannt (+1 Token)',
     namedOff: (name: string) => `🎤 Hat ${name} Titel + Interpret genannt?`,
     nextPlayer: 'Nächster Spieler →',

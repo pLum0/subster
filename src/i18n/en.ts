@@ -108,6 +108,9 @@ export const en = {
     stole: (name: string) => `✗ Wrong — ${name} stole the card!`,
     discarded: '✗ Not quite — card discarded',
     skipped: '⏭ Skipped — here it is',
+    broken: '⚠ This song could not be played',
+    brokenHint:
+      'The audio file appears to be broken — consider fixing or replacing it in your library. No token was spent; the next song is on the house.',
     namedOn: '✓ Named title + artist (+1 token)',
     namedOff: (name: string) => `🎤 ${name} named title + artist?`,
     nextPlayer: 'Next player →',

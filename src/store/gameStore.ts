@@ -183,6 +183,19 @@ export const useGameStore = create<GameStore>((set, get) => {
     }
   }
 
+  // A song whose file can't be decoded (bad rip, unsupported codec) would
+  // otherwise leave the turn in silent limbo: reveal it as 'broken' so the
+  // host sees which file needs fixing, and the game moves on for free.
+  audioPlayer.onError(() => {
+    if (get().status !== 'ready') return
+    const phase = get().game.phase
+    if (phase !== 'placing' && phase !== 'challenging') return
+    clearCountdown()
+    set({ countdown: null, placeCountdown: null })
+    audioPlayer.unwatch()
+    transport?.dispatch({ type: 'BROKEN' })
+  })
+
   return {
     game: initialState(),
     status: 'idle',

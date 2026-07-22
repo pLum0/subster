@@ -90,6 +90,25 @@ export function reducer(state: GameState, action: GameAction): GameState {
       return { ...state, players, phase: 'revealed', turn: { ...state.turn, lastResult: 'skipped' } }
     }
 
+    case 'BROKEN': {
+      // The audio file couldn't be played (bad rip, unsupported codec). Reveal
+      // the song so the host knows which file to fix — costs nothing; NEXT_TURN
+      // draws a fresh song for the same player.
+      if (state.phase !== 'placing' && state.phase !== 'challenging') return state
+      // Refund any challenge tokens already bet on the unplayable song.
+      const players = state.players.map((p, i) =>
+        state.turn.challenges.some((c) => c.playerIndex === i)
+          ? { ...p, tokens: addTokens(p.tokens, 1) }
+          : p,
+      )
+      return {
+        ...state,
+        players,
+        phase: 'revealed',
+        turn: { ...state.turn, challenges: [], lastResult: 'broken' },
+      }
+    }
+
     case 'PLACE': {
       if (state.phase !== 'placing') return state
       const active = state.players[state.turn.activePlayerIndex]
@@ -248,8 +267,10 @@ export function reducer(state: GameState, action: GameAction): GameState {
       if (state.phase === 'gameover') return state
       // A win was decided on the just-revealed card: end the game now.
       if (state.winnerId) return { ...state, phase: 'gameover' }
-      // A skipped song keeps the same player; just draw a fresh mystery.
-      if (state.turn.lastResult === 'skipped') return drawNext(state)
+      // A skipped or unplayable song keeps the same player; just draw a fresh mystery.
+      if (state.turn.lastResult === 'skipped' || state.turn.lastResult === 'broken') {
+        return drawNext(state)
+      }
       const activePlayerIndex = (state.turn.activePlayerIndex + 1) % state.players.length
       return drawNext({ ...state, turn: { ...state.turn, activePlayerIndex } })
     }
