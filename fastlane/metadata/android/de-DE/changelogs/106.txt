@@ -1,0 +1,3 @@
+• Behoben: Die Playlist-Auswahl ignorierte den ersten Tipp, nachdem ein Song geliked wurde
+• Beim Kartenstapel-Aufbau erscheint statt „Failed to fetch“ jetzt ein verständlicher Hinweis, und die übrigen Meldungen sind übersetzt
+• Die Store-Beschreibung nennt jetzt auch Wikidata als dritte Metadatenquelle neben Deezer und MusicBrainz

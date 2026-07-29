@@ -4,11 +4,11 @@
 # fdroiddata repo (gitlab.com/fdroid/fdroiddata → metadata/app.subster.yml).
 # See SUBMISSION.md next to this file for the submission steps.
 #
-# Note: the buildserver's stable npm is too old for Vite 5 — hence the
-# trixie apt source in sudo:. Comments are stripped in the fdroiddata copy
+# Note: commit must be the full commit hash of the release tag, not the tag
+# itself (review requirement). Comments are stripped in the fdroiddata copy
 # ('fdroid rewritemeta' canonicalizes: sorted categories, no comments).
 Categories:
-  - Multimedia
+  - Online Media Player
   - Party Game
 License: MIT
 AuthorName: Rouven Volkmann
@@ -25,12 +25,11 @@ Repo: https://github.com/pLum0/subster.git
 Builds:
   - versionName: 0.1.5
     versionCode: 105
-    commit: v0.1.5
+    commit: 6c8e7ab028006d9b099479f3cd64a438f4a1493a # = v0.1.5
     subdir: android/app
     sudo:
-      - echo "deb https://deb.debian.org/debian trixie main" > /etc/apt/sources.list.d/trixie.list
       - apt-get update
-      - apt-get install -y -t trixie npm
+      - apt-get install -y npm
     gradle:
       - yes
     prebuild:

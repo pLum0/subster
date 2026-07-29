@@ -1,0 +1,3 @@
+• Fixed: the playlist picker ignored the first tap after liking a song
+• Deck building now explains a failed connection instead of showing "Failed to fetch", and its remaining messages are translated
+• The store description now names Wikidata as the third metadata source, next to Deezer and MusicBrainz

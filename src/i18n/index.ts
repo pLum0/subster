@@ -47,3 +47,12 @@ export function useT(): Dict {
   const locale = useLocaleStore((s) => s.locale)
   return LOCALES[locale] ?? en
 }
+
+/**
+ * The dictionary outside React — for stores that build user-facing strings.
+ * Unlike `useT` this does not re-render on a language switch, so use it only
+ * where the string is produced once (e.g. an error message).
+ */
+export function getT(): Dict {
+  return LOCALES[useLocaleStore.getState().locale] ?? en
+}

@@ -28,11 +28,14 @@ export function SongActions({ song }: { song: Song }) {
   const [playlists, setPlaylists] = useState<Playlist[] | null>(null)
   const [results, setResults] = useState<Record<string, AddState>>({})
 
+  // Keyed on the song only: toggleLike mutates song.starred in place, and
+  // including it here would re-run this on the next render — closing the picker
+  // the user just opened.
   useEffect(() => {
     setLiked(!!song.starred)
     setPickerOpen(false)
     setResults({})
-  }, [song.id, song.starred])
+  }, [song.id])
 
   async function toggleLike() {
     const server = getEffectiveServer()

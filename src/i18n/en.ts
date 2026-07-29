@@ -100,6 +100,10 @@ export const en = {
     startingUp: 'Starting up',
     loadMore: 'more load as you play',
     backToSetup: 'Back to setup',
+    noServer: 'No server configured.',
+    deckNetworkError: 'Could not reach the server — check the address and your network.',
+    notEnoughSongs: (n: number) =>
+      `Only ${n} usable songs found. Try another library or an easier difficulty.`,
     placePrompt: 'Where does it go on your timeline?',
     skip: 'Skip this song (1 token)',
     lockIn: 'Lock in placement',

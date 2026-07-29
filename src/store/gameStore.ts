@@ -18,10 +18,11 @@ import {
 import { searchTrack } from '../metadata'
 import { isCurated } from '../metadata/curated'
 import { findCuratedSongs } from '../metadata/curatedFetch'
-import { getPlaylistSongs, streamUrl, type Song } from '../subsonic/client'
+import { ApiError, getPlaylistSongs, streamUrl, type Song } from '../subsonic/client'
 import { cardMaker } from '../subsonic/cards'
 import { audioPlayer } from '../audio/player'
 import { getEffectiveServer } from './configStore'
+import { getT } from '../i18n'
 
 /** How the mystery song is presented each turn. */
 export interface PlaybackSettings {
@@ -224,7 +225,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     async startGame({ playerNames, settings, deck, playback: pb }) {
       const server = getEffectiveServer()
       if (!server) {
-        set({ status: 'error', error: 'No server configured.' })
+        set({ status: 'error', error: getT().game.noServer })
         return
       }
       lastDeck = deck
@@ -270,7 +271,11 @@ export const useGameStore = create<GameStore>((set, get) => {
           )
         }
       } catch (e) {
-        set({ status: 'error', error: (e as Error).message })
+        // A transport failure surfaces as a bare "Failed to fetch" — localize it
+        // the way the connection test does. Subsonic's own auth/server messages
+        // are informative, so those are passed through.
+        const network = e instanceof ApiError && e.kind === 'network'
+        set({ status: 'error', error: network ? getT().game.deckNetworkError : (e as Error).message })
         return
       }
 
@@ -400,10 +405,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       if (producerToken !== myToken) return
       if (initial.length < minToStart) {
         producerToken++
-        set({
-          status: 'error',
-          error: `Only ${initial.length} usable songs found. Try another library or an easier difficulty.`,
-        })
+        set({ status: 'error', error: getT().game.notEnoughSongs(initial.length) })
         return
       }
 

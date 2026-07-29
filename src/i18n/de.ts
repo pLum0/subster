@@ -93,6 +93,10 @@ export const de: Dict = {
     startingUp: 'Wird gestartet',
     loadMore: 'mehr laden während du spielst',
     backToSetup: 'Zurück zur Einrichtung',
+    noServer: 'Kein Server eingerichtet.',
+    deckNetworkError: 'Server nicht erreichbar — prüfe die Adresse und dein Netzwerk.',
+    notEnoughSongs: (n: number) =>
+      `Nur ${n} brauchbare Songs gefunden. Probiere eine andere Bibliothek oder eine leichtere Stufe.`,
     placePrompt: 'Wohin gehört der Song auf deiner Zeitleiste?',
     skip: 'Song überspringen (1 Token)',
     lockIn: 'Platzierung bestätigen',
