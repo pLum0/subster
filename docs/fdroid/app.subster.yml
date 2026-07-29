@@ -23,9 +23,9 @@ RepoType: git
 Repo: https://github.com/pLum0/subster.git
 
 Builds:
-  - versionName: 0.1.5
-    versionCode: 105
-    commit: 6c8e7ab028006d9b099479f3cd64a438f4a1493a # = v0.1.5
+  - versionName: 0.1.6
+    versionCode: 106
+    commit: 1196b95c40f823d6122600e2a00e5fa13c071bd0 # = v0.1.6
     subdir: android/app
     sudo:
       - apt-get update
@@ -42,5 +42,5 @@ Builds:
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags ^v[0-9]+\.[0-9]+\.[0-9]+$
-CurrentVersion: 0.1.5
-CurrentVersionCode: 105
+CurrentVersion: 0.1.6
+CurrentVersionCode: 106
