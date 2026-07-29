@@ -7,6 +7,18 @@
 # Note: commit must be the full commit hash of the release tag, not the tag
 # itself (review requirement). Comments are stripped in the fdroiddata copy
 # ('fdroid rewritemeta' canonicalizes: sorted categories, no comments).
+#
+# AntiFeatures were requested by the F-Droid reviewer because the metadata
+# lookups are on by default. NonFreeNet covers Deezer only (the sole
+# proprietary service); TetheredNet covers all three hardcoded endpoints. The
+# user's own Subsonic server is NOT tethered — its URL is user-configured.
+AntiFeatures:
+  NonFreeNet:
+    en-US: Ranks song popularity via the proprietary Deezer API, on by default
+    de-DE: Bekanntheit über die proprietäre Deezer-API, standardmäßig aktiv
+  TetheredNet:
+    en-US: deezer.com, musicbrainz.org and wikidata.org are not configurable
+    de-DE: deezer.com, musicbrainz.org und wikidata.org nicht konfigurierbar
 Categories:
   - Online Media Player
   - Party Game
