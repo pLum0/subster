@@ -9,7 +9,9 @@ import {
   ping,
   removeSongFromPlaylist,
   resolveEffectiveServer,
+  setAddressPolicy,
   setSongStarred,
+  type AddressPolicy,
 } from './client'
 import type { ServerConfig } from '../store/configStore'
 
@@ -179,6 +181,82 @@ describe('resolveEffectiveServer', () => {
     vi.stubGlobal('fetch', spy)
     expect(await resolveEffectiveServer(config)).toBe(config)
     expect(spy).not.toHaveBeenCalled()
+  })
+})
+
+describe('address policy (LAN ↔ public switching)', () => {
+  const lanUrl = 'http://192.168.1.9:4533'
+  // What the deck producer holds after resolveEffectiveServer picked the LAN.
+  const lan: ServerConfig = { ...config, baseUrl: lanUrl, localBaseUrl: lanUrl }
+  const songs = jsonResponse({ 'subsonic-response': { status: 'ok', randomSongs: { song: [] } } })
+  const policy = (over: Partial<AddressPolicy> = {}): AddressPolicy => ({
+    current: (c) => c,
+    onFailure: () => config,
+    ...over,
+  })
+
+  afterEach(() => setAddressPolicy(null))
+
+  it('retries against the address onFailure returns', async () => {
+    const spy = vi
+      .fn()
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+      .mockResolvedValueOnce(songs)
+    vi.stubGlobal('fetch', spy)
+    setAddressPolicy(policy())
+
+    await expect(getRandomSongs(lan)).resolves.toEqual([])
+    expect(spy).toHaveBeenCalledTimes(2)
+    expect(String(spy.mock.calls[0]![0])).toContain('192.168.1.9')
+    expect(String(spy.mock.calls[1]![0])).toContain('s.example')
+  })
+
+  it('times out a LAN address that hangs, instead of waiting forever', async () => {
+    // The real-world failure: off the home network the socket is not refused,
+    // it simply never answers — which used to park the deck build on its
+    // spinner indefinitely.
+    const spy = vi
+      .fn()
+      .mockImplementationOnce(() => new Promise(() => {})) // never settles
+      .mockResolvedValueOnce(songs)
+    vi.stubGlobal('fetch', spy)
+    setAddressPolicy(policy())
+
+    await expect(getRandomSongs(lan)).resolves.toEqual([])
+    expect(String(spy.mock.calls[1]![0])).toContain('s.example')
+  }, 20000)
+
+  it('sends a stale captured config to the current address without re-probing', async () => {
+    const spy = vi.fn().mockResolvedValue(songs)
+    vi.stubGlobal('fetch', spy)
+    setAddressPolicy(policy({ current: () => config }))
+
+    await expect(getRandomSongs(lan)).resolves.toEqual([])
+    expect(spy).toHaveBeenCalledTimes(1) // no doomed LAN attempt at all
+    expect(String(spy.mock.calls[0]![0])).toContain('s.example')
+  })
+
+  it('reports the original failure when no policy is registered', async () => {
+    const spy = vi.fn().mockRejectedValue(new TypeError('Failed to fetch'))
+    vi.stubGlobal('fetch', spy)
+    await expect(getRandomSongs(lan)).rejects.toMatchObject({ kind: 'network' })
+    expect(spy).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not retry when the policy declines', async () => {
+    const spy = vi.fn().mockRejectedValue(new TypeError('Failed to fetch'))
+    vi.stubGlobal('fetch', spy)
+    setAddressPolicy(policy({ onFailure: () => null }))
+    await expect(getRandomSongs(lan)).rejects.toMatchObject({ kind: 'network' })
+    expect(spy).toHaveBeenCalledTimes(1)
+  })
+
+  it('surfaces a network error when the retry also fails (no third attempt)', async () => {
+    const spy = vi.fn().mockRejectedValue(new TypeError('Failed to fetch'))
+    vi.stubGlobal('fetch', spy)
+    setAddressPolicy(policy())
+    await expect(getRandomSongs(lan)).rejects.toMatchObject({ kind: 'network' })
+    expect(spy).toHaveBeenCalledTimes(2)
   })
 })
 

@@ -21,7 +21,7 @@ import { findCuratedSongs } from '../metadata/curatedFetch'
 import { ApiError, getPlaylistSongs, streamUrl, type Song } from '../subsonic/client'
 import { cardMaker } from '../subsonic/cards'
 import { audioPlayer } from '../audio/player'
-import { getEffectiveServer } from './configStore'
+import { demoteIfLanUnreachable, getEffectiveServer } from './configStore'
 import { getT } from '../i18n'
 
 /** How the mystery song is presented each turn. */
@@ -167,12 +167,20 @@ export const useGameStore = create<GameStore>((set, get) => {
     })
   }
 
+  /** Warm the next song's stream so its turn starts without a round trip. */
+  const preload = (song: Song | undefined) => {
+    const server = getEffectiveServer()
+    if (server && song) audioPlayer.preload(streamUrl(server, song.id))
+  }
+
   // Present the current mystery song: countdown then play, or play instantly.
   const beginTurn = () => {
     clearCountdown()
     set({ clipEnded: false, countdown: null, placeCountdown: null })
     const song = get().game.turn.song
     if (!song) return
+    // Covers the first song of a game, where no previous reveal warmed it.
+    preload(song)
     if (playback.trigger === 'countdown') {
       // If a song is still playing (e.g. after a skip), fade it out under the countdown.
       if (audioPlayer.playing) audioPlayer.fadeOut(2.6)
@@ -195,7 +203,7 @@ export const useGameStore = create<GameStore>((set, get) => {
   // A song whose file can't be decoded (bad rip, unsupported codec) would
   // otherwise leave the turn in silent limbo: reveal it as 'broken' so the
   // host sees which file needs fixing, and the game moves on for free.
-  audioPlayer.onError(() => {
+  const markBroken = () => {
     if (get().status !== 'ready') return
     const phase = get().game.phase
     if (phase !== 'placing' && phase !== 'challenging') return
@@ -203,6 +211,25 @@ export const useGameStore = create<GameStore>((set, get) => {
     set({ countdown: null, placeCountdown: null })
     audioPlayer.unwatch()
     transport?.dispatch({ type: 'BROKEN' })
+  }
+
+  audioPlayer.onError(() => {
+    if (get().status !== 'ready') return
+    const phase = get().game.phase
+    if (phase !== 'placing' && phase !== 'challenging') return
+    const song = get().game.turn.song
+    if (!song) {
+      markBroken()
+      return
+    }
+    // The stream URL is fetched by the audio element itself, so it never went
+    // through the API's address policy — a LAN address that just went away is
+    // indistinguishable from a corrupt file here. demoteIfLanUnreachable
+    // settles which it is, then the same song gets one more chance.
+    void demoteIfLanUnreachable().then((demoted) => {
+      if (demoted && get().game.turn.song?.id === song.id) playSong(song)
+      else markBroken()
+    })
   })
 
   return {
@@ -464,6 +491,10 @@ export const useGameStore = create<GameStore>((set, get) => {
       // stop the clip/lock timer so no timeout kicks in.
       audioPlayer.unwatch()
       transport?.dispatch({ type: 'REVEAL' })
+      // The reveal is the longest idle stretch of a turn and the current song
+      // is fully buffered by now — the ideal moment to fetch the next one.
+      const g = get().game
+      preload(g.deck[g.deckIndex])
     },
 
     awardNaming() {

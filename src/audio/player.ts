@@ -13,20 +13,53 @@ import { MediaSession } from '@jofr/capacitor-media-session'
  */
 class AudioPlayer {
   private el: HTMLAudioElement | null = null
+  /** Spare element holding the next song, so play() can start on it at once. */
+  private spare: HTMLAudioElement | null = null
+  private spareUrl: string | null = null
   private clipHandler: (() => void) | null = null
   private fadeTimer: ReturnType<typeof setInterval> | null = null
   private errorHandler: (() => void) | null = null
 
+  private make(): HTMLAudioElement {
+    const el = new Audio()
+    el.preload = 'auto'
+    el.addEventListener('error', () => {
+      // Only the element actually on air may report a broken file: stop() and
+      // preload recycling both empty a src, which fires error too.
+      if (el === this.el && el.src) this.errorHandler?.()
+    })
+    return el
+  }
+
   private element(): HTMLAudioElement {
     if (!this.el) {
-      this.el = new Audio()
-      this.el.addEventListener('error', () => {
-        // stop() empties the src, which also fires an error — ignore that.
-        if (this.el?.src) this.errorHandler?.()
-      })
+      this.el = this.make()
       this.setupMediaSession()
     }
     return this.el
+  }
+
+  /**
+   * Begin fetching `url` on the spare element. The stream comes from the user's
+   * own server over whatever connection the phone has, and starting that fetch
+   * only when the song is due costs seconds of dead air — so the next song is
+   * fetched a whole turn ahead. Repeated calls replace an in-flight preload.
+   */
+  preload(url: string): void {
+    if (!url || url === this.spareUrl || this.el?.src === url) return
+    if (!this.spare) this.spare = this.make()
+    this.spareUrl = url
+    this.spare.src = url
+    this.spare.load()
+  }
+
+  /** Release the spare element's buffer (game over, or a deck change). */
+  private clearPreload(): void {
+    this.spareUrl = null
+    if (!this.spare?.src) return
+    this.spare.pause()
+    this.spare.removeAttribute('src')
+    this.spare.load()
   }
 
   /**
@@ -91,6 +124,14 @@ class AudioPlayer {
    * mid-song entry doesn't jump in abruptly).
    */
   async play(url: string, startAt = 0, opts: { fadeInSeconds?: number } = {}): Promise<void> {
+    // Adopt the spare element when it already holds this song: its buffer is
+    // warm, so playback starts now instead of after a fresh round trip.
+    if (this.spare && this.spareUrl === url) {
+      const previous = this.el
+      this.el = this.spare
+      this.spare = previous
+      this.clearPreload()
+    }
     const el = this.element()
     this.clearFade()
     const fadeIn = opts.fadeInSeconds ?? 0
@@ -110,8 +151,13 @@ class AudioPlayer {
         // Autoplay can be blocked until a gesture; UI triggers cover this.
       }
     }
-    if (el.src !== url) {
-      el.src = url
+    if (el.src !== url) el.src = url
+    // Only a mid-song start needs the duration. Waiting for `loadedmetadata`
+    // unconditionally is what made playback lag: a transcoding Subsonic server
+    // sends no length up front, so metadata arrives seconds after the first
+    // audio would have been playable. Starting at 0 needs none of that — hand
+    // it to the element and let it begin as soon as it has bytes.
+    if (startAt > 0 && el.readyState < HTMLMediaElement.HAVE_METADATA) {
       el.addEventListener('loadedmetadata', seekAndPlay, { once: true })
     } else {
       seekAndPlay()
@@ -224,6 +270,7 @@ class AudioPlayer {
   stop(): void {
     this.clearFade()
     this.clearClip()
+    this.clearPreload()
     this.setPlaybackState('none')
     if (!this.el) return
     this.el.pause()

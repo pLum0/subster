@@ -146,20 +146,92 @@ interface RawGenre {
 }
 
 /**
+ * Lets configStore — which owns the local-vs-remote decision — steer requests
+ * without this module importing it (the dependency runs the other way).
+ */
+export interface AddressPolicy {
+  /**
+   * Map a possibly-stale config onto the address that is current *now*. Callers
+   * capture a config once and may then run for minutes (the deck producer), so
+   * without this every later request would re-probe an address we already know
+   * is dead and pay the timeout again.
+   */
+  current(config: ServerConfig): ServerConfig
+  /**
+   * A request just failed at the transport layer. Return a replacement address
+   * to retry once against, or null to let the failure stand.
+   */
+  onFailure(config: ServerConfig): ServerConfig | null
+}
+
+let addressPolicy: AddressPolicy | null = null
+
+export function setAddressPolicy(policy: AddressPolicy | null): void {
+  addressPolicy = policy
+}
+
+/** A request that never settles is worse than one that fails outright. */
+const REQUEST_TIMEOUT_MS = 30_000
+/**
+ * Probing the LAN address gets a much shorter leash: off the home network the
+ * socket typically hangs unanswered rather than being refused, and the user is
+ * watching a spinner while it does. A LAN server that cannot answer in this
+ * long is not the fast path we picked it for anyway.
+ */
+const LAN_PROBE_TIMEOUT_MS = 6_000
+
+/**
+ * `fetch` with a hard deadline. The AbortController alone is not enough:
+ * Capacitor's native HTTP layer does not honour AbortSignal, so the race is
+ * what actually bounds the wait — the signal just releases the browser path.
+ */
+async function fetchWithTimeout(url: string, timeoutMs: number): Promise<Response> {
+  const ctrl = new AbortController()
+  let timer: ReturnType<typeof setTimeout> | undefined
+  try {
+    return await Promise.race([
+      fetch(url, { headers: { Accept: 'application/json' }, signal: ctrl.signal }),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => {
+          ctrl.abort()
+          reject(new Error(`Request timed out after ${timeoutMs}ms`))
+        }, timeoutMs)
+      }),
+    ])
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+/**
  * Perform an authenticated JSON API call. Throws a tagged error on transport
- * failure (network/CORS) or a Subsonic `failed` response.
+ * failure (network/CORS/timeout) or a Subsonic `failed` response.
  */
 async function apiFetch(
   config: ServerConfig,
   endpoint: string,
   params: Record<string, string | number | undefined | Array<string | number>> = {},
 ): Promise<NonNullable<SubsonicEnvelope['subsonic-response']>> {
+  const target = addressPolicy?.current(config) ?? config
+  const onLan = !!target.localBaseUrl && target.baseUrl === target.localBaseUrl
   let res: Response
   try {
-    res = await fetch(buildUrl(config, endpoint, params), { headers: { Accept: 'application/json' } })
+    res = await fetchWithTimeout(
+      buildUrl(target, endpoint, params),
+      onLan && addressPolicy ? LAN_PROBE_TIMEOUT_MS : REQUEST_TIMEOUT_MS,
+    )
   } catch (e) {
-    // A cross-origin fetch blocked by CORS also lands here as a TypeError.
-    throw new ApiError('network', (e as Error).message || 'Network request failed')
+    // A cross-origin fetch blocked by CORS lands here as a TypeError; a LAN
+    // address left behind when the phone moved to mobile data lands here as a
+    // timeout. Either way, give the address owner a chance to hand us another
+    // one and retry, so the switch stays invisible to the user.
+    const fallback = addressPolicy?.onFailure(target) ?? null
+    if (!fallback) throw new ApiError('network', (e as Error).message || 'Network request failed')
+    try {
+      res = await fetchWithTimeout(buildUrl(fallback, endpoint, params), REQUEST_TIMEOUT_MS)
+    } catch (retryError) {
+      throw new ApiError('network', (retryError as Error).message || 'Network request failed')
+    }
   }
   if (!res.ok) throw new ApiError('server', `HTTP ${res.status} ${res.statusText}`)
 
@@ -353,13 +425,10 @@ export async function resolveEffectiveServer(
   if (!local || local === config.baseUrl) return config
   const candidate: ServerConfig = { ...config, baseUrl: local }
   try {
-    const ctrl = new AbortController()
-    const timer = setTimeout(() => ctrl.abort(), timeoutMs)
-    const res = await fetch(buildUrl(candidate, 'ping.view'), {
-      headers: { Accept: 'application/json' },
-      signal: ctrl.signal,
-    })
-    clearTimeout(timer)
+    // Must be the bounded race, not a bare AbortController: Capacitor's native
+    // HTTP ignores the signal, so off-network this probe would hang forever and
+    // the address would never get re-resolved at all.
+    const res = await fetchWithTimeout(buildUrl(candidate, 'ping.view'), timeoutMs)
     if (res.ok) {
       const json = (await res.json()) as SubsonicEnvelope
       if (json['subsonic-response']?.status === 'ok') return candidate
