@@ -51,9 +51,14 @@ export const de: Dict = {
     playlists: 'Playlists',
     playlistSongs: (n: number) => `${n} Songs`,
     onlineMeta: 'Online-Metadaten',
-    onlineMetaOnHint:
+    metaFull: 'Voll',
+    metaFullHint:
       'Bekanntheit kommt von Deezer, Jahre werden über MusicBrainz/Wikidata korrigiert.',
-    onlineMetaOffHint: 'Nur dein Server wird kontaktiert — die Datei-Jahre werden direkt verwendet.',
+    metaNoRanking: 'Ohne Deezer',
+    metaNoRankingHint:
+      'Lässt Deezer weg, den einzigen proprietären Dienst. Jahre werden weiterhin über MusicBrainz/Wikidata korrigiert; bekannte Songs kommen aus dem mitgelieferten Kanon.',
+    metaOffline: 'Offline',
+    metaOfflineHint: 'Nur dein Server wird kontaktiert — die Datei-Jahre werden direkt verwendet.',
     cardsToWin: 'Karten zum Sieg',
     difficulty: 'Schwierigkeit',
     diffHits: 'Hits',

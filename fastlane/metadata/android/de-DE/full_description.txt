@@ -16,6 +16,6 @@ Das Prinzip kennt man vom Kartenspiel Hitster — aber ohne physische Karten, oh
 
 <b>Privatsphäre</b>
 
-Keine Konten, keine Werbung, kein Tracking. Für Bekanntheit und Jahreszahlen werden nur Interpret/Titel von Bibliothekssongs an die öffentlichen APIs von Deezer, MusicBrainz und Wikidata geschickt — nichts über dich oder deinen Server. Wer „Online-Metadaten“ in den Einstellungen abschaltet, deaktiviert alle drei — dann wird nur noch der eigene Server kontaktiert.
+Keine Konten, keine Werbung, kein Tracking. Für Bekanntheit und Jahreszahlen werden nur Interpret/Titel von Bibliothekssongs an die öffentlichen APIs von Deezer, MusicBrainz und Wikidata geschickt — nichts über dich oder deinen Server. „Online-Metadaten“ kennt drei Stufen: voll, „Ohne Deezer“ (lässt den einzigen proprietären Dienst weg, behält aber die Jahre von MusicBrainz/Wikidata) und offline, wo nur der eigene Server kontaktiert wird.
 
 Zum Spielen brauchst du einen Subsonic-kompatiblen Musikserver. Deine Zugangsdaten verlassen das Gerät nie und werden nur als gesalzener Token gespeichert.

@@ -13,6 +13,7 @@ import {
   type MusicFolder,
   type Playlist,
 } from '../../subsonic/client'
+import type { MetadataMode } from '../../subsonic/deck'
 import { useT } from '../../i18n'
 
 export function GameSetup() {
@@ -43,7 +44,7 @@ export function GameSetup() {
   const [playlists, setPlaylists] = useState<Playlist[]>([])
   // Non-empty = deck comes from this playlist instead of a library.
   const [playlistId, setPlaylistId] = useState<string>(saved.playlistId ?? '')
-  const [onlineMeta, setOnlineMeta] = useState<boolean>(saved.onlineMeta ?? true)
+  const [metadataMode, setMetadataMode] = useState<MetadataMode>(saved.metadataMode ?? 'full')
 
   useEffect(() => {
     if (!server) {
@@ -92,15 +93,15 @@ export function GameSetup() {
 
   // Selecting a playlist defaults to the API-free "just play these songs"
   // tier (a hand-picked list needs no ranking); back to a library restores
-  // online metadata. Both stay user-togglable afterwards.
+  // full metadata. Both stay user-changeable afterwards.
   function pickSource(value: string) {
     if (value.startsWith('p:')) {
       setPlaylistId(value.slice(2))
-      setOnlineMeta(false)
+      setMetadataMode('offline')
     } else {
       setPlaylistId('')
       setMusicFolderId(value.slice(2))
-      setOnlineMeta(true)
+      setMetadataMode('full')
     }
   }
 
@@ -120,7 +121,7 @@ export function GameSetup() {
       genre,
       musicFolderId,
       playlistId,
-      onlineMeta,
+      metadataMode,
     })
     startGame({
       playerNames: names,
@@ -133,7 +134,7 @@ export function GameSetup() {
         yearFrom: yearFrom ? Number(yearFrom) : undefined,
         yearTo: yearTo ? Number(yearTo) : undefined,
         genre: playlistId ? undefined : genre || undefined,
-        onlineMeta,
+        metadataMode,
       },
       playback: { trigger, clip, randomStart, lockOnEnd },
     })
@@ -144,6 +145,12 @@ export function GameSetup() {
     ['hits', t.setup.diffHits, t.setup.diffHitsHint],
     ['balanced', t.setup.diffBalanced, t.setup.diffBalancedHint],
     ['deep', t.setup.diffDeep, t.setup.diffDeepHint],
+  ] as const
+
+  const metadataOptions = [
+    ['full', t.setup.metaFull, t.setup.metaFullHint],
+    ['noRanking', t.setup.metaNoRanking, t.setup.metaNoRankingHint],
+    ['offline', t.setup.metaOffline, t.setup.metaOfflineHint],
   ] as const
 
   const seg = (active: boolean) =>
@@ -237,39 +244,37 @@ export function GameSetup() {
             />
           </label>
 
-          <div className="flex items-center justify-between gap-3">
-            <button type="button" className="flex-1 text-left" onClick={() => setOnlineMeta((v) => !v)}>
-              {t.setup.onlineMeta}
-              <span className="mt-0.5 block text-xs text-slate-500">
-                {onlineMeta ? t.setup.onlineMetaOnHint : t.setup.onlineMetaOffHint}
-              </span>
-            </button>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={onlineMeta}
-              onClick={() => setOnlineMeta((v) => !v)}
-              className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
-                onlineMeta ? 'bg-brand-500' : 'bg-slate-600'
-              }`}
-            >
-              <span
-                className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
-                  onlineMeta ? 'translate-x-5' : 'translate-x-0'
-                }`}
-              />
-            </button>
+          <div className="flex flex-col gap-1.5">
+            <span>{t.setup.onlineMeta}</span>
+            <div className="grid grid-cols-3 gap-2">
+              {metadataOptions.map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={metadataMode === value}
+                  onClick={() => setMetadataMode(value)}
+                  className={seg(metadataMode === value)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <span className="text-xs text-slate-500">
+              {metadataOptions.find(([v]) => v === metadataMode)?.[2]}
+            </span>
           </div>
 
-          {/* Difficulty is Deezer-rank based, so it has no effect while online
-              metadata is off — shown greyed-out rather than hidden. */}
-          <div className={`flex flex-col gap-1.5 ${onlineMeta ? '' : 'pointer-events-none opacity-40'}`}>
+          {/* Difficulty is Deezer-rank based, so it has no effect in the two
+              modes that skip Deezer — shown greyed-out rather than hidden. */}
+          <div
+            className={`flex flex-col gap-1.5 ${metadataMode === 'full' ? '' : 'pointer-events-none opacity-40'}`}
+          >
             <span>{t.setup.difficulty}</span>
             <div className="grid grid-cols-3 gap-2">
               {difficultyOptions.map(([value, label, hint]) => (
                 <button
                   key={value}
-                  disabled={!onlineMeta}
+                  disabled={metadataMode !== 'full'}
                   onClick={() => setDifficulty(value)}
                   className={`flex flex-col items-center rounded-xl border px-2 py-2.5 text-center ${
                     difficulty === value

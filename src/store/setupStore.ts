@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import type { MetadataMode } from '../subsonic/deck'
 
 /**
  * The last-used Game Setup choices, persisted so a new game starts from where
@@ -22,11 +23,10 @@ export interface SetupPrefs {
   /** Non-empty = build the deck from this playlist instead of a library. */
   playlistId: string
   /**
-   * Contact Deezer/MusicBrainz/Wikidata for popularity + original years.
-   * Off = only the user's own server is reached; file years are used.
-   * Defaults on for library decks, off when a playlist is picked.
+   * How much of the external metadata pipeline to use (see MetadataMode).
+   * Defaults to 'full' for library decks, 'offline' when a playlist is picked.
    */
-  onlineMeta: boolean
+  metadataMode: MetadataMode
 }
 
 export const DEFAULT_PREFS: SetupPrefs = {
@@ -43,7 +43,7 @@ export const DEFAULT_PREFS: SetupPrefs = {
   genre: '',
   musicFolderId: '',
   playlistId: '',
-  onlineMeta: true,
+  metadataMode: 'full',
 }
 
 interface SetupState {
@@ -57,6 +57,21 @@ export const useSetupStore = create<SetupState>()(
       prefs: DEFAULT_PREFS,
       savePrefs: (prefs) => set({ prefs }),
     }),
-    { name: 'subster.setup' },
+    {
+      name: 'subster.setup',
+      version: 1,
+      // v0 stored a boolean `onlineMeta`; it only ever meant all-or-nothing,
+      // so it maps onto the two outer modes and nobody lands in 'noRanking'
+      // without choosing it.
+      migrate: (persisted, version) => {
+        const state = persisted as SetupState
+        if (version >= 1) return state
+        const { onlineMeta, ...rest } = (state?.prefs ?? {}) as SetupPrefs & { onlineMeta?: boolean }
+        return {
+          ...state,
+          prefs: { ...DEFAULT_PREFS, ...rest, metadataMode: onlineMeta === false ? 'offline' : 'full' },
+        }
+      },
+    },
   ),
 )

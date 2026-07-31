@@ -35,7 +35,8 @@ No physical cards, no accounts, **no backend** — just your phone and your own 
 - ✅ **Deck sources** — a music folder ("All libraries" included, e.g. skip your Audiobooks library)
   or **any Subsonic playlist**: hand-picked lists play as-is (shuffled, file years, no ranking),
   though the full pipeline can be re-enabled on top
-- ✅ **Online-metadata toggle** — switch off and **only your own server is contacted**: no
+- ✅ **Online-metadata modes** — *Full*, *No Deezer* (keeps MusicBrainz/Wikidata years, drops the
+  one proprietary service), or *Offline*, where **only your own server is contacted**: no
   Deezer/MusicBrainz/Wikidata at all (guaranteed by tests), file years as-is, and the bundled
   curated canon still works since it's offline data
 - ✅ **Original release year** via [MusicBrainz](https://musicbrainz.org/): a song's file year is often
@@ -125,9 +126,15 @@ title, and ISRC** of candidate songs from your library to three public APIs:
 
 Nothing else leaves your device: no user identity, no server address, no listening history. All
 APIs are contacted over https, and every lookup is cached locally so repeat games re-send nothing.
-If that tradeoff isn't for you, switch **Online metadata off** in the game setup: then Subster
-contacts **only your own server** — file-tagged years are used as-is and the bundled curated canon
-provides the recognizability signal. (Playlists default to this mode.)
+If that tradeoff isn't for you, **Online metadata** in the game setup has three settings:
+
+- **Full** (default) — all three APIs, as described above.
+- **No Deezer** — skips the only proprietary service of the three. Years are still corrected via
+  MusicBrainz and Wikidata (both open-data projects), and the bundled curated canon supplies the
+  recognizability signal instead of Deezer's rank. A good middle ground: a wrong year makes a
+  placement objectively wrong, whereas missing ranking only makes the deck less well-curated.
+- **Offline** — contacts **only your own server**; file-tagged years are used as-is and the curated
+  canon again provides recognizability. (Playlists default to this mode.)
 
 ### First run is slower
 

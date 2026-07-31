@@ -122,14 +122,26 @@ export interface DeckOptions {
   targetSize?: number
   /** Popularity difficulty preset. */
   difficulty?: Difficulty
-  /**
-   * Contact external APIs (Deezer popularity, MusicBrainz/Wikidata years)?
-   * `false` guarantees only the user's own server is reached: file-tag years,
-   * curated-canon membership as the offline "known" signal, no rank tiers.
-   * Defaults to true.
-   */
-  onlineMeta?: boolean
+  /** Which external metadata services may be contacted. Defaults to 'full'. */
+  metadataMode?: MetadataMode
 }
+
+/**
+ * How much of the external metadata pipeline is allowed.
+ *
+ * - `full` — Deezer popularity ranking (difficulty tiers) plus MusicBrainz /
+ *   Wikidata original years. The default: ranking is what makes a deck feel
+ *   recognizable instead of random.
+ * - `noRanking` — no Deezer. Years are still corrected via MusicBrainz and
+ *   Wikidata, both open-data services; deck recognizability falls back to the
+ *   bundled curated canon, as in `offline`. For users who object to the one
+ *   proprietary service in the chain but not to a wrong year — a wrong year
+ *   makes a placement objectively wrong, missing ranking only makes the deck
+ *   less well-curated.
+ * - `offline` — only the user's own server is reached: file-tag years, no rank
+ *   tiers, curated-canon membership as the "known" signal.
+ */
+export type MetadataMode = 'full' | 'noRanking' | 'offline'
 
 export interface FetchCandidatesOptions {
   size?: number

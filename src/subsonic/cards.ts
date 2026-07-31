@@ -5,16 +5,17 @@ import { resolveOriginalYear, type RecordingYear } from '../metadata'
 /**
  * Build the per-song card maker for a deck configuration.
  *
- * With `onlineMeta` on (default), a card's year is corrected via
+ * In `full` and `noRanking` mode a card's year is corrected via
  * MusicBrainz/Wikidata (see resolveOriginalYear) and live recordings are
- * dropped. With it off, the card uses the file-tag year as-is and **no
- * network request of any kind is made here** — that is the enforceable half
- * of the external-API-free guarantee (the other half is the deck builder
- * skipping Deezer, see gameStore). Either way, yearless songs and songs
+ * dropped — neither service is Deezer, so dropping the ranking does not cost
+ * year accuracy. In `offline` mode the card uses the file-tag year as-is and
+ * **no network request of any kind is made here** — that is the enforceable
+ * half of the external-API-free guarantee (the other half is the deck builder
+ * skipping Deezer, see gameStore). In every mode, yearless songs and songs
  * outside the configured year range yield `null`.
  */
 export function cardMaker(deck: DeckOptions) {
-  const online = deck.onlineMeta !== false
+  const online = (deck.metadataMode ?? 'full') !== 'offline'
   return async function makeCard(song: Song, deezerId?: number): Promise<Song | null> {
     const resolved: RecordingYear = online
       ? await resolveOriginalYear(song, deezerId)

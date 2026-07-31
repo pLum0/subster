@@ -16,6 +16,6 @@ It works like the card game Hitster, but with no physical cards, no accounts, an
 
 <b>Privacy</b>
 
-No accounts, no ads, no analytics. To rank songs and resolve years, only artist/title of library songs are sent to the public Deezer, MusicBrainz and Wikidata APIs — nothing about you or your server. Turning off "Online metadata" in the setup screen disables all three, and then only your own server is contacted.
+No accounts, no ads, no analytics. To rank songs and resolve years, only artist/title of library songs are sent to the public Deezer, MusicBrainz and Wikidata APIs — nothing about you or your server. The "Online metadata" setting has three levels: full, "No Deezer" (drops the only proprietary service but keeps MusicBrainz/Wikidata years), and offline, where only your own server is contacted.
 
 You need a Subsonic-compatible music server to play. Your server credentials never leave the device and are stored only as a salted token.

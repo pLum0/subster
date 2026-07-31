@@ -239,10 +239,12 @@ export const useGameStore = create<GameStore>((set, get) => {
       set({ status: 'building', dealt: 0, error: null, waitingForCards: false })
 
       const rng = Math.random
-      // With online metadata off, only the user's own server may be contacted:
-      // no Deezer ranking (curated-canon membership is the offline "known"
-      // signal instead — no rank floor/tiers), no MusicBrainz/Wikidata years.
-      const online = deck.onlineMeta !== false
+      // Only 'full' mode ranks the pool via Deezer. Without ranking there are
+      // no floors or tiers, and curated-canon membership becomes the "known"
+      // signal instead (streamed in by produceCurated below, which works in
+      // every mode since it uses bundled data plus the user's own server).
+      // Years are a separate question, owned by cardMaker.
+      const ranked = (deck.metadataMode ?? 'full') === 'full'
       const difficulty = deck.difficulty ?? 'balanced'
       const tiers = DIFFICULTY[difficulty]
       const floor = deckFloor(tiers)
@@ -331,9 +333,9 @@ export const useGameStore = create<GameStore>((set, get) => {
       const produce = async () => {
         for (const song of pool) {
           if (producerToken !== myToken || deckCount >= target) break
-          if (!online) {
-            // Offline tier: no Deezer ranking, no floor/tiers — every song in
-            // the pool becomes a card (file-tag year; yearless ones drop).
+          if (!ranked) {
+            // No Deezer: no floor/tiers, so every song in the pool becomes a
+            // card. Whether its year is looked up online is cardMaker's call.
             const card = await makeCard(song)
             if (card) emit(card)
             continue

@@ -14,7 +14,7 @@ const song = (over: Partial<Song> = {}): Song => ({
 })
 
 describe('cardMaker (offline / external-API-free)', () => {
-  const make = cardMaker({ onlineMeta: false })
+  const make = cardMaker({ metadataMode: 'offline' })
 
   it('never touches the network — the API-free guarantee', async () => {
     const spy = vi.fn(() => Promise.reject(new Error('network use is forbidden offline')))
@@ -28,7 +28,7 @@ describe('cardMaker (offline / external-API-free)', () => {
     vi.stubGlobal('fetch', vi.fn())
     expect(await make(song({ year: undefined }))).toBeNull()
     expect(await make(song({ year: 0 }))).toBeNull()
-    const ranged = cardMaker({ onlineMeta: false, yearFrom: 1990, yearTo: 1999 })
+    const ranged = cardMaker({ metadataMode: 'offline', yearFrom: 1990, yearTo: 1999 })
     expect(await ranged(song({ year: 1984 }))).toBeNull()
     expect(await ranged(song({ year: 2005 }))).toBeNull()
     expect((await ranged(song({ year: 1995 })))?.year).toBe(1995)
@@ -41,8 +41,19 @@ describe('cardMaker (online)', () => {
     // file year — but the point here is that fetch WAS attempted.
     const spy = vi.fn().mockResolvedValue({ ok: false, status: 503 } as unknown as Response)
     vi.stubGlobal('fetch', spy)
-    const make = cardMaker({}) // onlineMeta defaults to true
+    const make = cardMaker({}) // metadataMode defaults to 'full'
     const card = await make(song({ title: 'Online Song A9', artist: 'Nobody Known Z3' }))
+    expect(card?.year).toBe(1984)
+    expect(spy).toHaveBeenCalled()
+  }, 30000)
+
+  it("still resolves years in 'noRanking' — only Deezer ranking is dropped", async () => {
+    // Guards the easy mistake of treating anything that is not 'full' as
+    // offline: skipping Deezer must not cost MusicBrainz/Wikidata years.
+    const spy = vi.fn().mockResolvedValue({ ok: false, status: 503 } as unknown as Response)
+    vi.stubGlobal('fetch', spy)
+    const make = cardMaker({ metadataMode: 'noRanking' })
+    const card = await make(song({ title: 'Online Song B4', artist: 'Nobody Known Y7' }))
     expect(card?.year).toBe(1984)
     expect(spy).toHaveBeenCalled()
   }, 30000)
@@ -80,7 +91,7 @@ describe('playlist deck build (API-free end to end)', () => {
     const songs = await getPlaylistSongs(config, 'pl1')
     expect(songs.map((s) => s.id)).toEqual(['a', 'b', 'c']) // deduped
 
-    const make = cardMaker({ playlistId: 'pl1', onlineMeta: false })
+    const make = cardMaker({ playlistId: 'pl1', metadataMode: 'offline' })
     const cards = (await Promise.all(songs.map((s) => make(s)))).filter(Boolean)
     expect(cards.map((c) => c!.year)).toEqual([1971, 1999]) // yearless dropped
 

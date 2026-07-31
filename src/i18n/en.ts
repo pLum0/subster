@@ -58,9 +58,14 @@ export const en = {
     playlists: 'Playlists',
     playlistSongs: (n: number) => `${n} songs`,
     onlineMeta: 'Online metadata',
-    onlineMetaOnHint:
+    metaFull: 'Full',
+    metaFullHint:
       'Popularity is ranked via Deezer and years are corrected via MusicBrainz/Wikidata.',
-    onlineMetaOffHint: 'Only your server is contacted — file years are used as-is.',
+    metaNoRanking: 'No Deezer',
+    metaNoRankingHint:
+      'Skips Deezer, the one proprietary service. Years are still corrected via MusicBrainz/Wikidata; the bundled canon picks the well-known songs.',
+    metaOffline: 'Offline',
+    metaOfflineHint: 'Only your server is contacted — file years are used as-is.',
     cardsToWin: 'Cards to win',
     difficulty: 'Difficulty',
     diffHits: 'Hits',
