@@ -128,11 +128,22 @@ class AudioPlayer {
   /**
    * Fade the current playback out over `seconds`, then pause. Used when skipping
    * to the next song so the outgoing track bows out under the countdown.
+   *
+   * `stopAfter` releases the source once the fade completes instead of leaving
+   * it paused — for game over, where nothing will resume it and a lingering
+   * media notification would be noise.
    */
-  fadeOut(seconds: number): void {
-    if (!this.el || this.el.paused) return
+  fadeOut(seconds: number, opts: { stopAfter?: boolean } = {}): void {
+    if (!this.el || this.el.paused) {
+      if (opts.stopAfter) this.stop()
+      return
+    }
     this.clearClip()
     this.ramp(0, seconds, () => {
+      if (opts.stopAfter) {
+        this.stop()
+        return
+      }
       this.el?.pause()
       this.setPlaybackState('paused')
     })

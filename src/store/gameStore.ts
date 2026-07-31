@@ -483,7 +483,9 @@ export const useGameStore = create<GameStore>((set, get) => {
       transport?.dispatch({ type: 'NEXT_TURN' })
       if (get().game.phase === 'gameover') {
         clearCountdown()
-        audioPlayer.stop()
+        // Let the winning song bow out under the victory screen rather than
+        // cutting it dead the moment the button is tapped.
+        audioPlayer.fadeOut(5, { stopAfter: true })
       } else {
         beginTurn()
       }
