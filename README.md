@@ -11,6 +11,12 @@ songs already there. Guess right, keep the card. First to 10 cards wins.
 
 No physical cards, no accounts, **no backend** — just your phone and your own music library.
 
+<p align="center">
+  <a href="https://f-droid.org/en/packages/app.subster/">
+    <img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" alt="Get it on F-Droid" height="80">
+  </a>
+</p>
+
 ## Screenshots
 
 <p align="center">
