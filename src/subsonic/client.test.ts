@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   addSongToPlaylist,
   ApiError,
@@ -8,6 +8,7 @@ import {
   getRandomSongs,
   ping,
   removeSongFromPlaylist,
+  connect,
   resolveEffectiveServer,
   setSongStarred,
 } from './client'
@@ -111,6 +112,56 @@ describe('buildUrl', () => {
     expect(url.searchParams.get('size')).toBe('10')
     expect(url.searchParams.has('genre')).toBe(false)
     expect(url.searchParams.has('musicFolderId')).toBe(false)
+  })
+})
+
+describe('legacy password auth (Nextcloud Music)', () => {
+  const okEnvelope = jsonResponse({ 'subsonic-response': { status: 'ok', version: '1.16.1' } })
+  const tokenUnsupported = jsonResponse(failedEnvelope(41, 'Token-based authentication not supported'))
+
+  // deriveAuth needs Web Crypto, which this Node test environment lacks; a
+  // fixed salt also keeps the derived token deterministic.
+  beforeEach(() => {
+    vi.stubGlobal('crypto', { getRandomValues: (a: Uint8Array) => a.fill(0xab) })
+  })
+
+  it('sends p=enc:<hex> instead of t/s when a password is set', () => {
+    const url = new URL(buildUrl({ ...config, password: 'hunter2' }, 'ping.view'))
+    expect(url.searchParams.get('p')).toBe('enc:68756e74657232')
+    expect(url.searchParams.has('t')).toBe(false)
+    expect(url.searchParams.has('s')).toBe(false)
+  })
+
+  it('hex-encodes non-ASCII passwords as UTF-8', () => {
+    const url = new URL(buildUrl({ ...config, password: 'pä' }, 'ping.view'))
+    expect(url.searchParams.get('p')).toBe('enc:70c3a4')
+  })
+
+  it('connect() keeps token auth when the server accepts it', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(okEnvelope))
+    const result = await connect({ name: '', baseUrl: 'https://s.example', username: 'u' }, 'pw')
+    expect(result.ok).toBe(true)
+    // The password must not be retained when it was never needed.
+    if (result.ok) expect(result.config.password).toBeUndefined()
+  })
+
+  it('connect() falls back to the password scheme on error 41', async () => {
+    const spy = vi.fn().mockResolvedValueOnce(tokenUnsupported).mockResolvedValueOnce(okEnvelope)
+    vi.stubGlobal('fetch', spy)
+    const result = await connect({ name: '', baseUrl: 'https://s.example', username: 'u' }, 'pw')
+    expect(result.ok).toBe(true)
+    if (result.ok) expect(result.config.password).toBe('pw')
+    expect(new URL(String(spy.mock.calls[0]![0])).searchParams.has('t')).toBe(true)
+    expect(new URL(String(spy.mock.calls[1]![0])).searchParams.get('p')).toBe('enc:7077')
+  })
+
+  it('connect() does not fall back on a wrong password (error 40)', async () => {
+    const spy = vi.fn().mockResolvedValue(jsonResponse(failedEnvelope(40, 'Wrong credentials')))
+    vi.stubGlobal('fetch', spy)
+    const result = await connect({ name: '', baseUrl: 'https://s.example', username: 'u' }, 'pw')
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.kind).toBe('auth')
+    expect(spy).toHaveBeenCalledTimes(1) // no pointless password retry
   })
 })
 

@@ -38,7 +38,9 @@ export const en = {
     // Native app: CORS never applies; it is a plain connectivity problem.
     networkErrorNative: 'Could not reach the server — check the address and your network.',
     privacy:
-      'Only this device stores the credentials, and only as a salted token — never the raw password. If the server is on another domain and the test fails, it is almost always CORS (see the README).',
+      'Only this device stores the credentials, normally as a salted token rather than the password itself. If the server is on another domain and the test fails, it is almost always CORS (see the README).',
+    legacyAuth:
+      'This server rejects token authentication (Nextcloud Music does), so your password itself has to be stored on this device to talk to it. Using an app password rather than your account password is a good idea here.',
     clearCaches: 'Clear metadata caches',
     cachesCleared: (n: number) => `✓ ${n} cached entries cleared`,
     clearCachesHint:

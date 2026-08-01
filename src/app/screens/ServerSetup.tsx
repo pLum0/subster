@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { Layout } from '../Layout'
 import { Button } from '../../ui/Button'
 import { useConfigStore } from '../../store/configStore'
-import { deriveAuth, ping } from '../../subsonic/client'
+import { connect } from '../../subsonic/client'
 import { JsonCache } from '../../lib/cache'
 import { useT } from '../../i18n'
 
@@ -27,21 +27,20 @@ export function ServerSetup() {
     setStatus('testing')
     setError('')
 
-    const { salt, token } = deriveAuth(password)
-    const candidate = {
-      name: name.trim(),
-      baseUrl: baseUrl.trim(),
-      localBaseUrl: localBaseUrl.trim() || undefined,
-      username: username.trim(),
-      salt,
-      token,
-    }
-
     // The primary URL must answer; the local one is best-effort at runtime
-    // (unreachable simply means "not at home right now").
-    const result = await ping(candidate)
+    // (unreachable simply means "not at home right now"). connect() settles
+    // which auth scheme this server accepts.
+    const result = await connect(
+      {
+        name: name.trim(),
+        baseUrl: baseUrl.trim(),
+        localBaseUrl: localBaseUrl.trim() || undefined,
+        username: username.trim(),
+      },
+      password,
+    )
     if (result.ok) {
-      setServer(candidate)
+      setServer(result.config)
       navigate('/setup')
     } else {
       setStatus('error')
@@ -124,6 +123,12 @@ export function ServerSetup() {
 
         {status === 'error' && (
           <p className="rounded-lg bg-red-950/60 p-3 text-sm text-red-300">{error}</p>
+        )}
+
+        {server?.password && (
+          <p className="rounded-lg bg-amber-950/50 p-3 text-xs text-amber-200">
+            {t.server.legacyAuth}
+          </p>
         )}
 
         <p className="text-xs text-slate-500">{t.server.privacy}</p>

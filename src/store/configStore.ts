@@ -17,6 +17,15 @@ export interface ServerConfig {
   username: string
   salt: string
   token: string
+  /**
+   * Set only for servers that reject token auth and demand the legacy
+   * plain-password scheme — Nextcloud Music answers token auth with error 41,
+   * "Token-based authentication not supported". When present it is sent
+   * instead of salt+token, which means the password itself lives on the
+   * device rather than a derivative of it. The setup screen detects this and
+   * warns; an app password is the sensible thing to use there.
+   */
+  password?: string
 }
 
 interface ConfigState {

@@ -49,7 +49,7 @@ export interface GetRandomSongsOptions {
 /** Result of a connection test. */
 export type PingResult =
   | { ok: true; serverVersion?: string; type?: string }
-  | { ok: false; error: string; kind: 'auth' | 'network' | 'server' }
+  | { ok: false; error: string; kind: 'auth' | 'network' | 'server'; code?: number }
 
 /**
  * Derive Subsonic token auth from a plaintext password. Generates a random
@@ -63,15 +63,17 @@ export function deriveAuth(password: string): { salt: string; token: string } {
   return { salt, token: md5(password + salt) }
 }
 
+/** Hex-encode for the `p=enc:…` form, which survives any character safely. */
+function hexEncode(value: string): string {
+  return Array.from(new TextEncoder().encode(value), (b) => b.toString(16).padStart(2, '0')).join('')
+}
+
 function authParams(config: ServerConfig): Record<string, string> {
-  return {
-    u: config.username,
-    t: config.token,
-    s: config.salt,
-    v: API_VERSION,
-    c: CLIENT_NAME,
-    f: 'json',
-  }
+  const common = { u: config.username, v: API_VERSION, c: CLIENT_NAME, f: 'json' }
+  // Legacy plain-password auth, only for servers that refuse the token scheme.
+  return config.password
+    ? { ...common, p: `enc:${hexEncode(config.password)}` }
+    : { ...common, t: config.token, s: config.salt }
 }
 
 /** Normalize a base URL and build a fully-authenticated endpoint URL. */
@@ -174,7 +176,7 @@ async function apiFetch(
   if (body.status === 'failed') {
     const code = body.error?.code
     const kind = code === 40 ? 'auth' : 'server'
-    throw new ApiError(kind, body.error?.message || 'Subsonic request failed')
+    throw new ApiError(kind, body.error?.message || 'Subsonic request failed', code)
   }
   return body
 }
@@ -183,11 +185,16 @@ export class ApiError extends Error {
   constructor(
     public kind: 'auth' | 'network' | 'server',
     message: string,
+    /** Subsonic error code, when the failure came from the server. */
+    public code?: number,
   ) {
     super(message)
     this.name = 'ApiError'
   }
 }
+
+/** Subsonic error 41 — the server only accepts the legacy password scheme. */
+export const TOKEN_AUTH_UNSUPPORTED = 41
 
 function toSong(raw: RawSong): Song {
   return {
@@ -216,10 +223,32 @@ export async function ping(config: ServerConfig): Promise<PingResult> {
     return { ok: true, serverVersion: body.version, type: body.type }
   } catch (e) {
     if (e instanceof ApiError) {
-      return { ok: false, error: e.message, kind: e.kind }
+      return { ok: false, error: e.message, kind: e.kind, code: e.code }
     }
     return { ok: false, error: (e as Error).message, kind: 'network' }
   }
+}
+
+/**
+ * Test a server and hand back the config that actually authenticates.
+ *
+ * Token auth is tried first and is what almost every server wants. Only when
+ * one refuses it outright (error 41 — Nextcloud Music) do we fall back to
+ * sending the password, because that stores the password itself on the device
+ * instead of a value derived from it. Never throws.
+ */
+export async function connect(
+  base: Omit<ServerConfig, 'salt' | 'token' | 'password'>,
+  password: string,
+): Promise<{ ok: true; config: ServerConfig } | Extract<PingResult, { ok: false }>> {
+  const withToken: ServerConfig = { ...base, ...deriveAuth(password) }
+  const tokenAttempt = await ping(withToken)
+  if (tokenAttempt.ok) return { ok: true, config: withToken }
+  if (tokenAttempt.code !== TOKEN_AUTH_UNSUPPORTED) return tokenAttempt
+
+  const withPassword: ServerConfig = { ...withToken, password }
+  const passwordAttempt = await ping(withPassword)
+  return passwordAttempt.ok ? { ok: true, config: withPassword } : passwordAttempt
 }
 
 export async function getRandomSongs(
