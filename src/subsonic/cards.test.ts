@@ -87,7 +87,7 @@ describe('playlist deck build (API-free end to end)', () => {
         } as unknown as Response)
       }),
     )
-    const config = { name: '', baseUrl: 'https://my.nas.example', username: 'u', salt: 's', token: 't' }
+    const config = { id: 'srv1', name: '', baseUrl: 'https://my.nas.example', username: 'u', salt: 's', token: 't' }
     const songs = await getPlaylistSongs(config, 'pl1')
     expect(songs.map((s) => s.id)).toEqual(['a', 'b', 'c']) // deduped
 

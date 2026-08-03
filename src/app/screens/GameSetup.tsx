@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Layout } from '../Layout'
 import { Button } from '../../ui/Button'
-import { useEffectiveServer } from '../../store/configStore'
+import { useActiveServer, useEffectiveServer } from '../../store/configStore'
 import { useGameStore } from '../../store/gameStore'
-import { useSetupStore } from '../../store/setupStore'
+import { prefsForServer, useSetupStore } from '../../store/setupStore'
 import {
   getGenres,
   getMusicFolders,
@@ -21,10 +21,13 @@ export function GameSetup() {
   const server = useEffectiveServer()
   const startGame = useGameStore((s) => s.startGame)
   const savePrefs = useSetupStore((s) => s.savePrefs)
+  const activeServerId = useActiveServer()?.id
   const t = useT()
 
-  // Seed from the last-used setup (persisted), falling back to localized defaults.
-  const saved = useSetupStore.getState().prefs
+  // Seed from the last-used setup (persisted), falling back to localized
+  // defaults. Library/playlist/genre ids only mean something on the server they
+  // were chosen on, so they are dropped after a switch.
+  const saved = prefsForServer(useSetupStore.getState().prefs, activeServerId)
   const [names, setNames] = useState<string[]>(() =>
     saved.names.length ? saved.names : [t.setup.playerN(1), t.setup.playerN(2)],
   )
@@ -108,6 +111,7 @@ export function GameSetup() {
   function start() {
     // Remember these choices for next time.
     savePrefs({
+      serverId: activeServerId,
       names,
       winTarget,
       difficulty,

@@ -23,6 +23,12 @@ export interface SetupPrefs {
   /** Non-empty = build the deck from this playlist instead of a library. */
   playlistId: string
   /**
+   * Which server `musicFolderId` / `playlistId` / `genre` belong to. Those ids
+   * are meaningless on a different server, so they are ignored when the active
+   * server has changed rather than silently building an empty deck.
+   */
+  serverId?: string
+  /**
    * How much of the external metadata pipeline to use (see MetadataMode).
    * Defaults to 'full' for library decks, 'offline' when a playlist is picked.
    */
@@ -44,6 +50,15 @@ export const DEFAULT_PREFS: SetupPrefs = {
   musicFolderId: '',
   playlistId: '',
   metadataMode: 'full',
+}
+
+/**
+ * The saved preferences, with the server-specific ids dropped when they came
+ * from a different server.
+ */
+export function prefsForServer(prefs: SetupPrefs, serverId: string | undefined): SetupPrefs {
+  if (prefs.serverId === serverId) return prefs
+  return { ...prefs, musicFolderId: '', playlistId: '', genre: '', serverId }
 }
 
 interface SetupState {

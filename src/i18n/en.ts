@@ -40,7 +40,12 @@ export const en = {
     privacy:
       'Only this device stores the credentials, normally as a salted token rather than the password itself. If the server is on another domain and the test fails, it is almost always CORS (see the README).',
     legacyAuth:
-      'This server rejects token authentication (Nextcloud Music does), so your password itself has to be stored on this device to talk to it. Using an app password rather than your account password is a good idea here.',
+      'This server only accepts legacy authentication — the password sent as-is, instead of a token — so the password itself has to be stored on this device. An app password rather than your account password is a good idea here.',
+    legacyAuthSaved: 'Saved — but note how this server signs you in:',
+    continueAnyway: 'Got it, continue',
+    saved: 'Saved servers',
+    activeServer: 'in use',
+    addServer: '+ Add another server',
     clearCaches: 'Clear metadata caches',
     cachesCleared: (n: number) => `✓ ${n} cached entries cleared`,
     clearCachesHint:

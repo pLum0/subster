@@ -3,24 +3,51 @@ import { Capacitor } from '@capacitor/core'
 import { useNavigate } from 'react-router-dom'
 import { Layout } from '../Layout'
 import { Button } from '../../ui/Button'
-import { useConfigStore } from '../../store/configStore'
+import {
+  newServerId,
+  useActiveServer,
+  useConfigStore,
+  type ServerConfig,
+} from '../../store/configStore'
 import { connect } from '../../subsonic/client'
 import { JsonCache } from '../../lib/cache'
 import { useT } from '../../i18n'
 
 export function ServerSetup() {
   const navigate = useNavigate()
-  const { server, setServer, clearServer } = useConfigStore()
+  const { servers, activeId, saveServer, selectServer, removeServer } = useConfigStore()
+  const active = useActiveServer()
   const t = useT()
 
-  const [name, setName] = useState(server?.name ?? '')
-  const [baseUrl, setBaseUrl] = useState(server?.baseUrl ?? '')
-  const [localBaseUrl, setLocalBaseUrl] = useState(server?.localBaseUrl ?? '')
-  const [username, setUsername] = useState(server?.username ?? '')
+  // Which saved server the form is editing; null means "a new one".
+  const [editingId, setEditingId] = useState<string | null>(active?.id ?? null)
+  const [name, setName] = useState(active?.name ?? '')
+  const [baseUrl, setBaseUrl] = useState(active?.baseUrl ?? '')
+  const [localBaseUrl, setLocalBaseUrl] = useState(active?.localBaseUrl ?? '')
+  const [username, setUsername] = useState(active?.username ?? '')
   const [password, setPassword] = useState('')
   const [status, setStatus] = useState<'idle' | 'testing' | 'error'>('idle')
   const [error, setError] = useState('')
   const [cachesCleared, setCachesCleared] = useState<number | null>(null)
+  // Set after saving a server that needs the legacy scheme, so the warning is
+  // seen at the moment it becomes true rather than only on a later visit.
+  const [savedWithPassword, setSavedWithPassword] = useState(false)
+
+  const editing = servers.find((s) => s.id === editingId) ?? null
+
+  /** Point the form at a saved server (and switch to it), or at a blank one. */
+  function editServer(target: ServerConfig | null) {
+    setEditingId(target?.id ?? null)
+    setName(target?.name ?? '')
+    setBaseUrl(target?.baseUrl ?? '')
+    setLocalBaseUrl(target?.localBaseUrl ?? '')
+    setUsername(target?.username ?? '')
+    setPassword('') // never prefilled: only a derived token is kept for most servers
+    setStatus('idle')
+    setError('')
+    setSavedWithPassword(false)
+    if (target) selectServer(target.id)
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -32,6 +59,7 @@ export function ServerSetup() {
     // which auth scheme this server accepts.
     const result = await connect(
       {
+        id: editingId ?? newServerId(),
         name: name.trim(),
         baseUrl: baseUrl.trim(),
         localBaseUrl: localBaseUrl.trim() || undefined,
@@ -40,7 +68,15 @@ export function ServerSetup() {
       password,
     )
     if (result.ok) {
-      setServer(result.config)
+      saveServer(result.config)
+      setEditingId(result.config.id)
+      setStatus('idle')
+      // Storing the password itself is a real change in what lives on the
+      // device — say so here, where it happened, instead of navigating away.
+      if (result.config.password) {
+        setSavedWithPassword(true)
+        return
+      }
       navigate('/setup')
     } else {
       setStatus('error')
@@ -65,6 +101,43 @@ export function ServerSetup() {
         </button>
         <h1 className="text-xl font-bold">{t.server.title}</h1>
       </header>
+
+      {servers.length > 0 && (
+        <div className="flex flex-col gap-1.5 pb-2">
+          <span className="text-sm text-slate-400">{t.server.saved}</span>
+          {servers.map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => editServer(s)}
+              className={`flex items-center justify-between gap-2 rounded-xl border px-3 py-2 text-left ${
+                s.id === activeId
+                  ? 'border-brand-500 bg-brand-500/15'
+                  : 'border-slate-700 bg-slate-800'
+              }`}
+            >
+              <span className="min-w-0">
+                <span className="block truncate">{s.name || s.baseUrl}</span>
+                <span className="block truncate text-xs text-slate-500">
+                  {s.username} · {s.baseUrl}
+                </span>
+              </span>
+              {s.id === activeId && (
+                <span className="shrink-0 text-xs text-brand-300">{t.server.activeServer}</span>
+              )}
+            </button>
+          ))}
+          {editingId !== null && (
+            <button
+              type="button"
+              onClick={() => editServer(null)}
+              className="rounded-xl border border-dashed border-slate-700 px-3 py-2 text-sm text-slate-400"
+            >
+              {t.server.addServer}
+            </button>
+          )}
+        </div>
+      )}
 
       <form className="flex flex-1 flex-col gap-4" onSubmit={handleSubmit}>
         <Field label={t.server.name}>
@@ -125,8 +198,9 @@ export function ServerSetup() {
           <p className="rounded-lg bg-red-950/60 p-3 text-sm text-red-300">{error}</p>
         )}
 
-        {server?.password && (
+        {(savedWithPassword || editing?.password) && (
           <p className="rounded-lg bg-amber-950/50 p-3 text-xs text-amber-200">
+            {savedWithPassword && <strong className="block pb-1">{t.server.legacyAuthSaved}</strong>}
             {t.server.legacyAuth}
           </p>
         )}
@@ -134,16 +208,22 @@ export function ServerSetup() {
         <p className="text-xs text-slate-500">{t.server.privacy}</p>
 
         <div className="mt-auto flex flex-col gap-3 py-4">
-          <Button type="submit" disabled={!canSubmit}>
-            {status === 'testing' ? t.server.testing : t.server.save}
-          </Button>
-          {server && (
+          {savedWithPassword ? (
+            <Button type="button" onClick={() => navigate('/setup')}>
+              {t.server.continueAnyway}
+            </Button>
+          ) : (
+            <Button type="submit" disabled={!canSubmit}>
+              {status === 'testing' ? t.server.testing : t.server.save}
+            </Button>
+          )}
+          {editing && (
             <Button
               type="button"
               variant="ghost"
               onClick={() => {
-                clearServer()
-                navigate('/')
+                removeServer(editing.id)
+                editServer(null)
               }}
             >
               {t.server.disconnect}
