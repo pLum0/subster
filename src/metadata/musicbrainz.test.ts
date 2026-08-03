@@ -81,6 +81,39 @@ describe('yearFromRecordingMbid', () => {
     expect(await settled(yearFromRecordingMbid('mbid-503'))).toEqual({ year: 1969, live: false })
   })
 
+  it("prefers the release's own date over its group's earliest", async () => {
+    // Daft Punk's "Revolution 909": the single's release-group carries
+    // first-release-date 1996 because its earliest member is a promo pressing
+    // we exclude. The official releases are 1997 and 1998, so 1997 is right.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        res({
+          title: 'Song',
+          releases: [
+            { date: '1998', status: 'Official', 'release-group': { 'first-release-date': '1996' } },
+            { date: '1997', status: 'Official', 'release-group': { 'first-release-date': '1997' } },
+            { date: '1996', status: 'Promotion', 'release-group': { 'first-release-date': '1996' } },
+          ],
+        }),
+      ),
+    )
+    expect(await settled(yearFromRecordingMbid('mbid-promo-group'))).toEqual({ year: 1997, live: false })
+  })
+
+  it('falls back to the group date when the release itself is undated', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        res({
+          title: 'Song',
+          releases: [{ status: 'Official', 'release-group': { 'first-release-date': '1969-03-12' } }],
+        }),
+      ),
+    )
+    expect(await settled(yearFromRecordingMbid('mbid-undated'))).toEqual({ year: 1969, live: false })
+  })
+
   it('excludes compilation release-groups and takes the earliest clean year', async () => {
     vi.stubGlobal(
       'fetch',

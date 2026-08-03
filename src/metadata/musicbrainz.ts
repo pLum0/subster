@@ -154,8 +154,13 @@ export async function yearFromRecordingMbid(mbid: string): Promise<RecordingYear
     const res = await throttled(`${MB}/recording/${mbid}?inc=releases+release-groups&fmt=json`)
     if (!res.ok) return { live: false } // rate-limited/server error: don't poison the cache
     const data = (await res.json()) as RecordingLookup
+    // The release's own date first, the release-group's only as a fallback.
+    // A group's `first-release-date` is the date of its *earliest* release,
+    // which may be a promo we just excluded — that is how Daft Punk's
+    // "Revolution 909" resolved to a 1996 promo pressing rather than the 1997
+    // album — and for a bonus track it can predate the recording entirely.
     const rels = (data.releases ?? []).map((r) => ({
-      year: yearOf(r['release-group']?.['first-release-date']) ?? yearOf(r.date),
+      year: yearOf(r.date) ?? yearOf(r['release-group']?.['first-release-date']),
       types: r['release-group']?.['secondary-types'],
       real: isRealRelease(r.status),
     }))
