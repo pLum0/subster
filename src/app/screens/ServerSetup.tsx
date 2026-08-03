@@ -91,7 +91,10 @@ export function ServerSetup() {
         setSavedWithPassword(true)
         return
       }
-      navigate('/setup')
+      // Back to the start screen rather than straight into a new game: saving
+      // a server is often just switching between them, not the first step of
+      // setting up a round.
+      navigate('/')
     } else {
       setStatus('error')
       setError(
@@ -225,7 +228,7 @@ export function ServerSetup() {
 
         <div className="mt-auto flex flex-col gap-3 py-4">
           {savedWithPassword ? (
-            <Button type="button" onClick={() => navigate('/setup')}>
+            <Button type="button" onClick={() => navigate('/')}>
               {t.server.continueAnyway}
             </Button>
           ) : (
