@@ -124,15 +124,30 @@ export function isLiveVersion(title: string, album?: string): boolean {
 const NOT_THE_ORIGINAL = /\b(?:demos?|karaoke|instrumentals?|rehearsals?|alternate takes?)\b/i
 
 /**
- * Only matched as a suffix marker — parenthesised, or after a dash — the same
- * shape the live check uses. A bare substring would eat songs legitimately
- * called "Demons", a band called The Demos, or Jethro Tull's "Karaoke".
+ * The same words, but required to be the *whole* annotation. A dash is weak
+ * evidence — plenty of titles contain one ("Maximo Park - Karaoke Plays") —
+ * so after a dash the remainder must be the marker itself, optionally with a
+ * qualifier, and nothing else.
+ */
+const ONLY_THE_MARKER =
+  /^(?:demos?|karaoke|instrumentals?|rehearsals?|alternate takes?)(?:\s+(?:version|mix|take|cut|recording))?$/i
+
+/**
+ * Only matched as a suffix marker, never as a bare substring: songs called
+ * "Demons" or "Demolition Man" must survive, and so must a title that merely
+ * happens to carry a dash.
+ *
+ * The album is deliberately not consulted here, unlike the live check. A live
+ * album really does make every track on it live, but an album called "The
+ * Flying Demos" is a name, not a statement about its contents.
  */
 export function isNonOriginalVersion(title: string, album?: string): boolean {
   if (isLiveVersion(title, album)) return true
-  const marker = title.match(/[([]([^)\]]*)[)\]]|[-–—]\s*(.+)$/)
-  const suffix = marker?.[1] ?? marker?.[2]
-  return suffix ? NOT_THE_ORIGINAL.test(suffix) : false
+  // Parentheses are an explicit annotation, so containing the word is enough.
+  const parenthesised = title.match(/[([]([^)\]]*)[)\]]/)?.[1]
+  if (parenthesised && NOT_THE_ORIGINAL.test(parenthesised)) return true
+  const afterDash = title.match(/[-–—]\s*(.+)$/)?.[1]
+  return !!afterDash && ONLY_THE_MARKER.test(afterDash.trim())
 }
 
 /** Deck configuration chosen in Game Setup. */

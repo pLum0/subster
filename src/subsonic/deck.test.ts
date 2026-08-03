@@ -113,9 +113,25 @@ describe('isNonOriginalVersion', () => {
 
   it('only matches a suffix marker, never a bare word in the title', () => {
     expect(isNonOriginalVersion('Demons')).toBe(false)
+    expect(isNonOriginalVersion('Karaoke Plays')).toBe(false) // a real Maximo Park song
     expect(isNonOriginalVersion('Karaoke', 'Songs from the Wood')).toBe(false)
     expect(isNonOriginalVersion('Instrumental Break')).toBe(false)
     expect(isNonOriginalVersion('Demolition Man')).toBe(false)
+  })
+
+  it('does not treat any dash in a title as a version marker', () => {
+    // A dash is weak evidence: the remainder has to be the marker itself.
+    expect(isNonOriginalVersion('Alright - Karaoke Kings')).toBe(false)
+    expect(isNonOriginalVersion('Alright - Demo Days')).toBe(false)
+    // …but a genuine annotation still counts, with or without a qualifier.
+    expect(isNonOriginalVersion('Alright - Karaoke Version')).toBe(true)
+    expect(isNonOriginalVersion('Alright - Demo')).toBe(true)
+  })
+
+  it('ignores the album for these terms, unlike the live check', () => {
+    // "The Flying Demos" is a name, not a statement about the recordings.
+    expect(isNonOriginalVersion('Some Song', 'The Flying Demos')).toBe(false)
+    expect(isNonOriginalVersion('Some Song', 'Karaoke Classics')).toBe(false)
   })
 })
 
