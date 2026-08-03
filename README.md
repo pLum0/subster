@@ -30,8 +30,12 @@ No physical cards, no accounts, **no backend** — just your phone and your own 
 
 **A fully playable pass-and-play game on one phone** (milestones 1–3 plus most of the ruleset):
 
-- ✅ Subsonic connection (token auth) + connection test, with an optional **local (LAN) address**
-  that is preferred automatically whenever it answers (the home screen shows "· LAN" when active)
+- ✅ Subsonic connection + connection test, with an optional **local (LAN) address** that is
+  preferred automatically whenever it answers (the home screen shows "· LAN" when active).
+  Token auth by default, with an automatic fallback to legacy password auth for servers that
+  refuse it
+- ✅ **Several servers**: save as many as you like and switch between them; each remembers its own
+  library, playlist and genre
 - ✅ **Deck sources** — a music folder ("All libraries" included, e.g. skip your Audiobooks library)
   or **any Subsonic playlist**: hand-picked lists play as-is (shuffled, file years, no ranking),
   though the full pipeline can be re-enabled on top
@@ -82,11 +86,16 @@ npm run build      # production build → dist/
 
 ## How it connects to Subsonic
 
-On first launch you enter your server URL, username, and password. The password is **never stored**
-— only a salted token (`token = md5(password + salt)`) is kept in this device's `localStorage`, and
-only on the device that acts as host/DJ.
+On first launch you enter your server URL, username, and password. Normally the password is **not
+stored** — only a salted token (`token = md5(password + salt)`) is kept in this device's
+`localStorage`, and only on the device that acts as host/DJ.
 
-Prefer an **https** server URL: with plain `http`, the token (which grants API access) and your
+Some servers refuse token auth and accept only **legacy authentication**, where the password is sent
+as-is; Nextcloud Music is one. The connection test detects that (Subsonic error 41) and falls back
+automatically, which means the password itself has to be stored for those servers. The app says so
+when it happens and suggests using an app password rather than your account password.
+
+Prefer an **https** server URL: with plain `http`, the credentials (which grant API access) and your
 audio travel unencrypted through your network. The app shows a warning when you enter an `http://`
 URL but still allows it, since LAN-only setups are common.
 

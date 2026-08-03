@@ -6,6 +6,7 @@ Das Prinzip kennt man vom Kartenspiel Hitster — aber ohne physische Karten, oh
 
 <ul>
 <li>Spielt <b>deine</b> Musik — verbindet sich mit jedem Subsonic-kompatiblen Server</li>
+<li>Mehrere Server speichern und zwischen ihnen wechseln; jeder merkt sich seine eigene Bibliothek und Playlist</li>
 <li>Cleverer Kartenstapel: Songs werden nach echter Bekanntheit gewichtet (Deezer-Popularität + mitgelieferter Kanon aus Chart-Hits), damit sich das Deck fair anfühlt</li>
 <li>Original-Erscheinungsjahre über MusicBrainz und Wikidata — ein Remaster von 2015 zählt trotzdem als Original</li>
 <li>Token: Song überspringen, gegen die Platzierung anderer wetten und die Karte stehlen, oder Bonus für das Nennen von Titel + Interpret</li>
@@ -18,4 +19,4 @@ Das Prinzip kennt man vom Kartenspiel Hitster — aber ohne physische Karten, oh
 
 Keine Konten, keine Werbung, kein Tracking. Für Bekanntheit und Jahreszahlen werden nur Interpret/Titel von Bibliothekssongs an die öffentlichen APIs von Deezer, MusicBrainz und Wikidata geschickt — nichts über dich oder deinen Server. „Online-Metadaten“ kennt drei Stufen: voll, „Ohne Deezer“ (lässt den einzigen proprietären Dienst weg, behält aber die Jahre von MusicBrainz/Wikidata) und offline, wo nur der eigene Server kontaktiert wird.
 
-Zum Spielen brauchst du einen Subsonic-kompatiblen Musikserver. Deine Zugangsdaten verlassen das Gerät nie und werden nur als gesalzener Token gespeichert.
+Zum Spielen brauchst du einen Subsonic-kompatiblen Musikserver. Deine Zugangsdaten verlassen das Gerät nie und werden als gesalzener Token statt des Passworts gespeichert — außer bei Servern, die nur die Legacy-Authentifizierung akzeptieren; dort weist die App darauf hin, dass das Passwort gespeichert werden muss.

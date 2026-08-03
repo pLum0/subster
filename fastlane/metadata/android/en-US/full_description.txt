@@ -6,6 +6,7 @@ It works like the card game Hitster, but with no physical cards, no accounts, an
 
 <ul>
 <li>Plays <b>your</b> music — connects to any Subsonic-compatible server</li>
+<li>Save several servers and switch between them; each remembers its own library and playlist</li>
 <li>Smart deck building: songs are ranked by real-world recognizability (Deezer popularity + a bundled canon of chart hits), so the deck feels fair instead of obscure</li>
 <li>Original release years via MusicBrainz and Wikidata — a remaster from 2015 still counts as its original year</li>
 <li>Tokens: skip a song, bet against another player's placement and steal the card, or earn a bonus for naming title and artist</li>
@@ -18,4 +19,4 @@ It works like the card game Hitster, but with no physical cards, no accounts, an
 
 No accounts, no ads, no analytics. To rank songs and resolve years, only artist/title of library songs are sent to the public Deezer, MusicBrainz and Wikidata APIs — nothing about you or your server. The "Online metadata" setting has three levels: full, "No Deezer" (drops the only proprietary service but keeps MusicBrainz/Wikidata years), and offline, where only your own server is contacted.
 
-You need a Subsonic-compatible music server to play. Your server credentials never leave the device and are stored only as a salted token.
+You need a Subsonic-compatible music server to play. Your server credentials never leave the device, and are stored as a salted token rather than the password itself — except for servers that only accept legacy authentication, where the app tells you that the password has to be kept.

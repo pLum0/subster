@@ -8,6 +8,11 @@
 # itself (review requirement). Comments are stripped in the fdroiddata copy
 # ('fdroid rewritemeta' canonicalizes: sorted categories, no comments).
 #
+# The Builds entry below is the one submitted with v0.1.6 and is NOT bumped per
+# release: AutoUpdateMode/UpdateCheckMode mean F-Droid's checkupdates adds an
+# entry for each new vX.Y.Z tag by itself. This copy only needs editing when
+# the recipe itself changes — see SUBMISSION.md.
+#
 # AntiFeatures were requested by the F-Droid reviewer because the metadata
 # lookups are on by default. NonFreeNet covers Deezer only (the sole
 # proprietary service); TetheredNet covers all three hardcoded endpoints. The

@@ -1,0 +1,5 @@
+• Works with Nextcloud Music: servers that only accept legacy password authentication are now detected and supported
+• Save several servers and switch between them — each remembers its own library, playlist and genre
+• New "No Deezer" metadata mode: keeps corrected release years from MusicBrainz and Wikidata while skipping the one proprietary service
+• The winning song now fades out on the victory screen instead of stopping abruptly
+• Fixed: the playlist picker ignored the first tap after liking a song
