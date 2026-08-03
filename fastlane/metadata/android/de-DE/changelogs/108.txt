@@ -1,0 +1,4 @@
+• Deutlich genauere Erscheinungsjahre: Ein Song wird nach seiner ersten offiziellen Veröffentlichung datiert — ein Bootleg macht Karten nicht mehr zu alt
+• Server ohne MusicBrainz-IDs — bei Nextcloud Music immer — nutzen jetzt das Album, um die Aufnahme zu bestimmen; das behebt falsche Jahre und fehlende Songs
+• Songs ohne ermittelbares Jahr bleiben außen vor, statt mit falschem Jahr zu erscheinen
+• Langsame Wikidata-Abfragen bremsen nicht mehr, fehlgeschlagene Anfragen werden wiederholt

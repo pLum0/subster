@@ -1,0 +1,4 @@
+• Much more accurate release years: a song is dated by its first official release, so a bootleg or promo pressing no longer makes a card years too old
+• Servers that never expose MusicBrainz IDs — Nextcloud Music always — now use the album to identify the recording, fixing wrong years and missing songs
+• A song whose year can't be established is left out rather than dealt with a wrong one
+• Failed MusicBrainz requests are retried; a slow Wikidata lookup no longer holds up the deck

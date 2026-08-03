@@ -44,11 +44,17 @@ No physical cards, no accounts, **no backend** — just your phone and your own 
   Deezer/MusicBrainz/Wikidata at all (guaranteed by tests), file years as-is, and the bundled
   curated canon still works since it's offline data
 - ✅ **Original release year** via [MusicBrainz](https://musicbrainz.org/): a song's file year is often
-  a remaster/compilation year, so we look the recording up (by its MusicBrainz ID → ISRC → Deezer ISRC →
-  fuzzy text, in that order) and take the earliest recording date. (e.g. "The Boxer" tagged 1991 on a
-  Greatest-Hits album → corrected to 1969.) For songs MusicBrainz can only date to a late reissue —
-  typically old tracks — we fall back to [Wikidata](https://www.wikidata.org/)'s published year (e.g. a
-  1936 chanson MusicBrainz dates 1992). Falls back to the file's year if nothing resolves.
+  a remaster/compilation year, so we identify the recording (by its MusicBrainz ID → ISRC → **the
+  album's tracklist** → Deezer ISRC → fuzzy text, in that order) and take its **first official
+  release**. Bootlegs, promos and demos don't count — a 1990 concert bootleg is not when the Black
+  Album came out — while a single that preceded its album does. (e.g. "The Boxer" tagged 1991 on a
+  Greatest-Hits album → corrected to 1969.) The album step matters most for servers that never expose
+  MusicBrainz IDs, such as Nextcloud Music: it is what tells a *Mothership* rip of "No Quarter" apart
+  from the Page & Plant one. For songs MusicBrainz can only date to a late reissue — typically old
+  tracks — we fall back to [Wikidata](https://www.wikidata.org/)'s published year (e.g. a 1936 chanson
+  MusicBrainz dates 1992). If nothing resolves, the song is **left out of the deck** rather than dealt
+  with its file year: a wrong year makes a placement objectively wrong, while a missing song only makes
+  the deck shorter. *Offline* mode is the exception and uses the file year by design.
 - ✅ **Deck builder**: a **75/25 known-vs-rest mix** where "known" is chosen by *oversampling* — a large
   pool is ranked by [Deezer](https://www.deezer.com/)'s track `rank` and the genuinely top-ranked songs
   become the known pool (the obscure long tail is discarded), so the deck actually feels recognizable.
