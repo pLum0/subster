@@ -5,6 +5,7 @@ import {
   deckFloor,
   DIFFICULTY,
   isLiveVersion,
+  isNonOriginalVersion,
   spreadArtists,
   tierIndex,
   type ClassifiedSong,
@@ -85,6 +86,36 @@ describe('popularity tiers', () => {
 
   it('computes per-tier quotas from the deck target', () => {
     expect(computeQuotas(48, tiers)).toEqual([19, 17, 12]) // 40/35/25
+  })
+})
+
+describe('isNonOriginalVersion', () => {
+  it('flags karaoke, instrumental, demo, rehearsal and alternate takes', () => {
+    // The first two were both seen in a real library.
+    expect(isNonOriginalVersion('What I Got (Demo)')).toBe(true)
+    expect(isNonOriginalVersion('’54, ’74, ’90, 2010 (karaoke version)')).toBe(true)
+    expect(isNonOriginalVersion('Song - Instrumental')).toBe(true)
+    expect(isNonOriginalVersion('Song (Rehearsal)')).toBe(true)
+    expect(isNonOriginalVersion('Song (Alternate Take)')).toBe(true)
+  })
+
+  it('still flags everything the live filter catches', () => {
+    expect(isNonOriginalVersion('Song (Live at Wembley)')).toBe(true)
+    expect(isNonOriginalVersion('Niemals einer Meinung', 'Das 1000. Konzert')).toBe(true)
+  })
+
+  it('keeps the versions people actually know', () => {
+    expect(isNonOriginalVersion('Song (Radio Edit)')).toBe(false)
+    expect(isNonOriginalVersion('Song (Single Version)')).toBe(false)
+    expect(isNonOriginalVersion('Song (Extended Mix)')).toBe(false)
+    expect(isNonOriginalVersion('All Along the Watchtower')).toBe(false)
+  })
+
+  it('only matches a suffix marker, never a bare word in the title', () => {
+    expect(isNonOriginalVersion('Demons')).toBe(false)
+    expect(isNonOriginalVersion('Karaoke', 'Songs from the Wood')).toBe(false)
+    expect(isNonOriginalVersion('Instrumental Break')).toBe(false)
+    expect(isNonOriginalVersion('Demolition Man')).toBe(false)
   })
 })
 

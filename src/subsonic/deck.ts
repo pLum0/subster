@@ -109,6 +109,32 @@ export function isLiveVersion(title: string, album?: string): boolean {
   return titleLive || (album ? ALBUM_LIVE.test(album) : false)
 }
 
+/**
+ * Recordings that are not the song as anyone knows it: a karaoke backing
+ * track, an instrumental, a demo, a rehearsal, an alternate take. Either the
+ * guess is unrecognisable or the year belongs to the outtake rather than the
+ * song.
+ *
+ * Deliberately narrow. A radio edit or single version is usually the version
+ * people actually know, a remix is sometimes the famous one, and a cover can
+ * outshine the original — dropping those would cost more than it saves, so
+ * they stay in. See issue #14 for the wider list and re-recordings, which are
+ * the hard case.
+ */
+const NOT_THE_ORIGINAL = /\b(?:demos?|karaoke|instrumentals?|rehearsals?|alternate takes?)\b/i
+
+/**
+ * Only matched as a suffix marker — parenthesised, or after a dash — the same
+ * shape the live check uses. A bare substring would eat songs legitimately
+ * called "Demons", a band called The Demos, or Jethro Tull's "Karaoke".
+ */
+export function isNonOriginalVersion(title: string, album?: string): boolean {
+  if (isLiveVersion(title, album)) return true
+  const marker = title.match(/[([]([^)\]]*)[)\]]|[-–—]\s*(.+)$/)
+  const suffix = marker?.[1] ?? marker?.[2]
+  return suffix ? NOT_THE_ORIGINAL.test(suffix) : false
+}
+
 /** Deck configuration chosen in Game Setup. */
 export interface DeckOptions {
   /** Library to draw from (Subsonic music folder id). */
@@ -170,7 +196,7 @@ export async function fetchCandidates(
   return raw.filter((s) => {
     if (seen.has(s.id)) return false
     seen.add(s.id)
-    if (isLiveVersion(s.title, s.album)) return false
+    if (isNonOriginalVersion(s.title, s.album)) return false
     if (s.duration && s.duration > maxDuration) return false
     return true
   })

@@ -1,5 +1,6 @@
 • Funktioniert mit Nextcloud Music: Server, die nur die Legacy-Passwort-Authentifizierung akzeptieren, werden jetzt erkannt und unterstützt
 • Mehrere Server speichern und zwischen ihnen wechseln — jeder merkt sich seine eigene Bibliothek, Playlist und Genre-Auswahl
 • Neuer Modus „Ohne Deezer“: behält die korrigierten Erscheinungsjahre von MusicBrainz und Wikidata, lässt aber den einzigen proprietären Dienst weg
+• Karaoke-Versionen, Instrumentals, Demos, Proben und alternative Takes landen nicht mehr im Kartenstapel — so wie Live-Aufnahmen schon vorher
 • Der Siegersong wird auf dem Gewinner-Bildschirm ausgeblendet statt abrupt gestoppt
 • Behoben: Die Playlist-Auswahl ignorierte den ersten Tipp, nachdem ein Song geliked wurde
