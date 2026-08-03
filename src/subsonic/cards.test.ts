@@ -37,9 +37,10 @@ describe('cardMaker (offline / external-API-free)', () => {
 
 describe('cardMaker (online)', () => {
   it('consults the metadata pipeline (network is used)', async () => {
-    // A 503 everywhere: resolveOriginalYear finds nothing and falls back to the
-    // file year — but the point here is that fetch WAS attempted.
-    const spy = vi.fn().mockResolvedValue({ ok: false, status: 503 } as unknown as Response)
+    // A failure everywhere: resolveOriginalYear finds nothing and falls back to
+    // the file year — but the point here is that fetch WAS attempted. Not a 503:
+    // that one is retried (see musicbrainz.ts), which would only add wall time.
+    const spy = vi.fn().mockResolvedValue({ ok: false, status: 500 } as unknown as Response)
     vi.stubGlobal('fetch', spy)
     const make = cardMaker({}) // metadataMode defaults to 'full'
     const card = await make(song({ title: 'Online Song A9', artist: 'Nobody Known Z3' }))
@@ -50,7 +51,7 @@ describe('cardMaker (online)', () => {
   it("still resolves years in 'noRanking' — only Deezer ranking is dropped", async () => {
     // Guards the easy mistake of treating anything that is not 'full' as
     // offline: skipping Deezer must not cost MusicBrainz/Wikidata years.
-    const spy = vi.fn().mockResolvedValue({ ok: false, status: 503 } as unknown as Response)
+    const spy = vi.fn().mockResolvedValue({ ok: false, status: 500 } as unknown as Response)
     vi.stubGlobal('fetch', spy)
     const make = cardMaker({ metadataMode: 'noRanking' })
     const card = await make(song({ title: 'Online Song B4', artist: 'Nobody Known Y7' }))
