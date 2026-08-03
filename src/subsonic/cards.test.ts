@@ -36,26 +36,29 @@ describe('cardMaker (offline / external-API-free)', () => {
 })
 
 describe('cardMaker (online)', () => {
-  it('consults the metadata pipeline (network is used)', async () => {
-    // A failure everywhere: resolveOriginalYear finds nothing and falls back to
-    // the file year — but the point here is that fetch WAS attempted. Not a 503:
-    // that one is retried (see musicbrainz.ts), which would only add wall time.
+  it('consults the metadata pipeline, and drops a song it cannot date', async () => {
+    // A failure everywhere: nothing resolves. Online we would rather deal a
+    // shorter deck than a card whose year came from an untrusted tag. Not a
+    // 503: that one is retried (see musicbrainz.ts), which only adds wall time.
     const spy = vi.fn().mockResolvedValue({ ok: false, status: 500 } as unknown as Response)
     vi.stubGlobal('fetch', spy)
     const make = cardMaker({}) // metadataMode defaults to 'full'
     const card = await make(song({ title: 'Online Song A9', artist: 'Nobody Known Z3' }))
-    expect(card?.year).toBe(1984)
+    expect(card).toBeNull()
     expect(spy).toHaveBeenCalled()
   }, 30000)
 
-  it("still resolves years in 'noRanking' — only Deezer ranking is dropped", async () => {
+  it("still consults MusicBrainz in 'noRanking' — only Deezer is dropped", async () => {
     // Guards the easy mistake of treating anything that is not 'full' as
-    // offline: skipping Deezer must not cost MusicBrainz/Wikidata years.
+    // offline: skipping Deezer must not cost MusicBrainz/Wikidata years. The
+    // contrast with offline is sharp — offline makes no request and keeps the
+    // tag year, this makes requests and drops the song when they tell it
+    // nothing.
     const spy = vi.fn().mockResolvedValue({ ok: false, status: 500 } as unknown as Response)
     vi.stubGlobal('fetch', spy)
     const make = cardMaker({ metadataMode: 'noRanking' })
     const card = await make(song({ title: 'Online Song B4', artist: 'Nobody Known Y7' }))
-    expect(card?.year).toBe(1984)
+    expect(card).toBeNull()
     expect(spy).toHaveBeenCalled()
   }, 30000)
 })

@@ -75,12 +75,34 @@ interface Entities {
   entities?: Record<string, { claims?: Record<string, Snak[]> }>
 }
 
+/**
+ * How long a deck build is willing to wait for Wikidata. Two requests against a
+ * slow API, and by far the longest link in the chain — one song in a benchmark
+ * spent 34 seconds here. Giving up on the wait does not cancel the request: if
+ * an answer does arrive it still reaches the cache, so the next deck gets it
+ * for free. A card that is merely late costs nothing; a player waiting on one
+ * costs the game.
+ */
+const BUDGET_MS = 8000
+
 /** Original publication/inception year for a song, or undefined if not found. */
 export async function yearFromWikidata(artist: string, title: string): Promise<number | undefined> {
   const key = `${artist}::${title}`.toLowerCase().replace(/\s+/g, ' ').trim()
   const cached = yearCache.get(key)
   if (cached !== undefined) return cached ?? undefined
 
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const deadline = new Promise<undefined>((resolve) => {
+    timer = setTimeout(() => resolve(undefined), BUDGET_MS)
+  })
+  try {
+    return await Promise.race([lookup(artist, title, key), deadline])
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+async function lookup(artist: string, title: string, key: string): Promise<number | undefined> {
   const wantTitle = norm(stripQualifiers(title))
   const wantArtist = norm(artist)
   if (!wantTitle || !wantArtist) return undefined

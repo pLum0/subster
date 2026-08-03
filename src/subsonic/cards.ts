@@ -21,7 +21,14 @@ export function cardMaker(deck: DeckOptions) {
       ? await resolveOriginalYear(song, deezerId)
       : { live: false }
     if (resolved.live) return null
-    const year = resolved.year ?? song.year
+    // Online, an unresolved year means neither MusicBrainz nor Wikidata knows
+    // this recording, and the file's own tag is not a safe stand-in: measured
+    // over hand-verified years it is wrong on nearly a quarter of songs,
+    // almost always naming the compilation or album it was ripped from. A
+    // wrong year makes a placement objectively wrong and the round
+    // unwinnable, while a missing song only makes the deck shorter — so drop
+    // it. Offline is the exception: there the tag is the only source we have.
+    const year = online ? resolved.year : song.year
     if (!year || year <= 0) return null
     if (deck.yearFrom && year < deck.yearFrom) return null
     if (deck.yearTo && year > deck.yearTo) return null

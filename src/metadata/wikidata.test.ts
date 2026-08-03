@@ -129,3 +129,46 @@ describe('yearFromWikidata', () => {
     expect(await settled(yearFromWikidata('X', 'Y'))).toBe(1999)
   })
 })
+
+describe('the 8s budget', () => {
+  const SEARCH = { search: [{ id: 'Q1', label: 'Late Song', description: 'song by Late Artist' }] }
+  const ENTITIES = {
+    entities: {
+      Q1: {
+        claims: {
+          P31: [{ mainsnak: { datavalue: { value: { id: 'Q7366' } } } }],
+          P577: [{ mainsnak: { datavalue: { value: { time: '+1968-00-00T00:00:00Z' } } } }],
+        },
+      },
+    },
+  }
+
+  /** Wikidata that answers correctly, but 20s later — past the budget. */
+  function stubSlowFlow() {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        (url: string) =>
+          new Promise<Response>((resolve) =>
+            setTimeout(() => resolve(res(String(url).includes('wbsearchentities') ? SEARCH : ENTITIES)), 20_000),
+          ),
+      ),
+    )
+  }
+
+  it('gives up waiting rather than stalling the deck', async () => {
+    stubSlowFlow()
+    const pending = yearFromWikidata('Late Artist', 'Late Song')
+    await vi.advanceTimersByTimeAsync(9_000)
+    expect(await pending).toBeUndefined()
+    await vi.advanceTimersByTimeAsync(120_000) // let the request land, freeing the limiter
+  })
+
+  it('keeps the late answer, so the next deck gets it for free', async () => {
+    // The previous test already abandoned this lookup — but it completed in the
+    // background and cached 1968. A fetch that would throw proves the second
+    // call never goes near the network.
+    vi.stubGlobal('fetch', vi.fn(() => Promise.reject(new Error('no network'))))
+    expect(await settled(yearFromWikidata('Late Artist', 'Late Song'))).toBe(1968)
+  })
+})
