@@ -74,7 +74,14 @@ export const useConfigStore = create<ConfigState>()(
         })),
 
       selectServer: (id) =>
-        set((s) => (s.servers.some((x) => x.id === id) ? { activeId: id, effective: null } : {})),
+        set((s) => {
+          // Re-selecting the server we are already on must change nothing.
+          // Clearing `effective` here would drop the resolved LAN address, and
+          // the subscription below would not fire to resolve it again — the
+          // address silently falls back to the public one.
+          if (s.activeId === id || !s.servers.some((x) => x.id === id)) return {}
+          return { activeId: id, effective: null }
+        }),
 
       removeServer: (id) =>
         set((s) => {

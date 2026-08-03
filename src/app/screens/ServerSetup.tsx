@@ -9,9 +9,15 @@ import {
   useConfigStore,
   type ServerConfig,
 } from '../../store/configStore'
-import { connect } from '../../subsonic/client'
+import { connect, ping } from '../../subsonic/client'
 import { JsonCache } from '../../lib/cache'
 import { useT } from '../../i18n'
+
+/** Re-check a server we already hold credentials for, shaped like connect(). */
+async function reTest(config: ServerConfig) {
+  const result = await ping(config)
+  return result.ok ? ({ ok: true as const, config }) : result
+}
 
 export function ServerSetup() {
   const navigate = useNavigate()
@@ -54,19 +60,27 @@ export function ServerSetup() {
     setStatus('testing')
     setError('')
 
+    const base = {
+      id: editingId ?? newServerId(),
+      name: name.trim(),
+      baseUrl: baseUrl.trim(),
+      localBaseUrl: localBaseUrl.trim() || undefined,
+      username: username.trim(),
+    }
+
     // The primary URL must answer; the local one is best-effort at runtime
-    // (unreachable simply means "not at home right now"). connect() settles
-    // which auth scheme this server accepts.
-    const result = await connect(
-      {
-        id: editingId ?? newServerId(),
-        name: name.trim(),
-        baseUrl: baseUrl.trim(),
-        localBaseUrl: localBaseUrl.trim() || undefined,
-        username: username.trim(),
-      },
-      password,
-    )
+    // (unreachable simply means "not at home right now").
+    //
+    // With a password typed, connect() settles which auth scheme this server
+    // accepts. Without one — you switched to a saved server, or edited its
+    // name or address — re-test using the credentials already held, so the
+    // button still does something instead of sitting disabled. (If the
+    // username was changed too, the held token no longer matches it and the
+    // server says so; typing the password fixes that.)
+    const result = password
+      ? await connect(base, password)
+      : await reTest({ ...base, salt: editing!.salt, token: editing!.token, password: editing!.password })
+
     if (result.ok) {
       saveServer(result.config)
       setEditingId(result.config.id)
@@ -90,7 +104,9 @@ export function ServerSetup() {
     }
   }
 
-  const canSubmit = baseUrl.trim() && username.trim() && password && status !== 'testing'
+  // A saved server can be re-tested without retyping its password.
+  const canSubmit =
+    baseUrl.trim() && username.trim() && (password || editing) && status !== 'testing'
   const insecureUrl = /^http:\/\//i.test(baseUrl.trim()) || /^http:\/\//i.test(localBaseUrl.trim())
 
   return (
