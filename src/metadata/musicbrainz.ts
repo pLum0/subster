@@ -19,9 +19,9 @@ export interface RecordingYear {
   live: boolean
 }
 
-const yearByMbid = new JsonCache<RecordingYear>('mb-year-v3')
+const yearByMbid = new JsonCache<RecordingYear>('mb-year-v4')
 const yearByRgSearch = new JsonCache<number | null>('mb-rg-year')
-const earliestByText = new JsonCache<number | null>('mb-earliest-v1')
+const earliestByText = new JsonCache<number | null>('mb-earliest-v2')
 const mbidByIsrc = new JsonCache<string | null>('mb-isrc')
 const mbidByText = new JsonCache<string | null>('mb-text')
 const mbidByAlbumTrack = new JsonCache<string | null>('mb-album-track')
@@ -64,6 +64,7 @@ interface RecordingLookup {
   disambiguation?: string
   releases?: Array<{
     date?: string
+    status?: string
     'release-group'?: { 'first-release-date'?: string; 'secondary-types'?: string[] }
   }>
 }
@@ -93,8 +94,25 @@ interface RgSearch {
   }>
 }
 
+/**
+ * Release-group kinds that are not the song's original publication. `Demo`
+ * belongs here for the same reason as `Compilation`: a demo of a song predates
+ * the record everyone knows, so counting it dates the card years too early.
+ */
 const isCompOrLive = (types: string[] | undefined) =>
-  (types ?? []).some((t) => /compilation|live/i.test(t))
+  (types ?? []).some((t) => /compilation|live|demo/i.test(t))
+
+/**
+ * Whether a release counts as the song actually coming out. Bootlegs, promos
+ * and pseudo-releases do not — a bootleg of a 1990 concert is why "Don't Tread
+ * on Me" (Black Album, August 1991) resolved to 1990, and a Derby bootleg is
+ * why "Pretty Girls Make Graves" resolved to 1983 instead of 1984.
+ *
+ * Unknown status counts: plenty of legitimate releases have none, and dropping
+ * them would cost far more coverage than the few oddities it would catch.
+ */
+const isRealRelease = (status: string | undefined): boolean =>
+  !status || !/^(bootleg|promotion|pseudo-release)$/i.test(status)
 
 /** Escape quotes/backslashes for a Lucene field query. */
 const esc = (s: string) => s.replace(/(["\\])/g, '\\$1')
@@ -139,9 +157,10 @@ export async function yearFromRecordingMbid(mbid: string): Promise<RecordingYear
     const rels = (data.releases ?? []).map((r) => ({
       year: yearOf(r['release-group']?.['first-release-date']) ?? yearOf(r.date),
       types: r['release-group']?.['secondary-types'],
+      real: isRealRelease(r.status),
     }))
     const cleanYears = rels
-      .filter((r) => r.year !== undefined && !isCompOrLive(r.types))
+      .filter((r) => r.year !== undefined && r.real && !isCompOrLive(r.types))
       .map((r) => r.year as number)
     const dated = rels.filter((r) => r.year !== undefined)
 
@@ -200,6 +219,12 @@ export async function yearFromReleaseGroupSearch(
   return year
 }
 
+interface SearchRelease {
+  date?: string
+  status?: string
+  'release-group'?: { 'secondary-types'?: string[] }
+}
+
 interface RecSearchDated {
   recordings?: Array<{
     id: string
@@ -207,21 +232,41 @@ interface RecSearchDated {
     title?: string
     disambiguation?: string
     'artist-credit'?: Array<{ name?: string }>
-    'first-release-date'?: string
+    releases?: SearchRelease[]
   }>
 }
 
 /**
- * The earliest year across *all* non-live recordings of a song, matched by
- * artist + **base title** (version/mix/remaster qualifiers stripped), using each
- * recording's `first-release-date` from a single recording search.
+ * First year this recording actually came out: the earliest date among its
+ * *official* releases, ignoring bootlegs, promos, demos, compilations and live
+ * records. A single that preceded its album still counts — it is an official
+ * release like any other, and it is genuinely when the song came out.
  *
- * This is the reliable "original year" lower bound. A file may be tagged with a
- * much later comp/mix year — e.g. "Smells Like Teen Spirit (Butch Vig Mix)" off
- * the 2004 compilation *With the Lights Out* — yet the song first appeared in
- * 1991; stripping the "(Butch Vig Mix)" qualifier lets it match the original
- * recordings. `min()` can only pull the year earlier, never wrong-late. Live
- * recordings are excluded (different performance, later date).
+ * Deliberately computed from the release list rather than MusicBrainz's
+ * precomputed `first-release-date`, which counts every release including
+ * bootlegs and so runs years early for heavily bootlegged artists.
+ */
+function firstPublished(releases: SearchRelease[] | undefined): number | undefined {
+  const years = (releases ?? [])
+    .filter((r) => isRealRelease(r.status) && !isCompOrLive(r['release-group']?.['secondary-types']))
+    .map((r) => yearOf(r.date))
+    .filter((y): y is number => y !== undefined)
+  return years.length ? Math.min(...years) : undefined
+}
+
+/**
+ * The earliest year any recording of this song was **published**, matched by
+ * artist + **base title** (version/mix/remaster qualifiers stripped), from a
+ * single recording search. Each candidate contributes the first date among its
+ * own official releases — see `firstPublished`.
+ *
+ * This is the "original year" lower bound. A file may be tagged with a much
+ * later comp/mix year — e.g. "Smells Like Teen Spirit (Butch Vig Mix)" off the
+ * 2004 compilation *With the Lights Out* — yet the song first appeared in 1991;
+ * stripping the "(Butch Vig Mix)" qualifier lets it match the original
+ * recordings. `min()` can only pull the year earlier, so anything that slips
+ * through the filters makes the card too *old*, which is why the bootleg and
+ * demo screening matters here more than anywhere else in the chain.
  */
 export async function earliestRecordingYear(
   artist: string,
@@ -251,7 +296,7 @@ export async function earliestRecordingYear(
         (c.name ?? '').toLowerCase().includes(wantArtist),
       )
       if (!credited) continue
-      const y = yearOf(rec['first-release-date'])
+      const y = firstPublished(rec.releases)
       if (y) years.push(y)
     }
     if (years.length) year = Math.min(...years)

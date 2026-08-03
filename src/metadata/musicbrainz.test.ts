@@ -114,9 +114,12 @@ describe('earliestRecordingYear', () => {
       vi.fn().mockResolvedValue(
         res({
           recordings: [
-            { score: 100, title: 'Smells Like Teen Spirit (Butch Vig Mix)', 'first-release-date': '2004', 'artist-credit': [{ name: 'Nirvana' }] },
-            { score: 100, title: 'Smells Like Teen Spirit', 'first-release-date': '1991-09-10', 'artist-credit': [{ name: 'Nirvana' }] },
-            { score: 100, title: 'Smells Like Teen Spirit (live)', 'first-release-date': '1991-08-01', 'artist-credit': [{ name: 'Nirvana' }] },
+            { score: 100, title: 'Smells Like Teen Spirit (Butch Vig Mix)', 'artist-credit': [{ name: 'Nirvana' }],
+              releases: [{ date: '2004', status: 'Official', 'release-group': {} }] },
+            { score: 100, title: 'Smells Like Teen Spirit', 'artist-credit': [{ name: 'Nirvana' }],
+              releases: [{ date: '1991-09-10', status: 'Official', 'release-group': {} }] },
+            { score: 100, title: 'Smells Like Teen Spirit (live)', 'artist-credit': [{ name: 'Nirvana' }],
+              releases: [{ date: '1991-08-01', status: 'Official', 'release-group': { 'secondary-types': ['Live'] } }] },
           ],
         }),
       ),
@@ -125,14 +128,64 @@ describe('earliestRecordingYear', () => {
     expect(await settled(earliestRecordingYear('Nirvana', 'Smells Like Teen Spirit (Butch Vig Mix)'))).toBe(1991)
   })
 
+  it('ignores bootlegs, promos and demos — a single before the album still counts', async () => {
+    // The real "Don't Tread on Me" data: a 1990 bootleg of a concert alongside
+    // the August 1991 album. Answering 1990 would date the card a year early.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        res({
+          recordings: [
+            {
+              score: 100,
+              title: 'Song',
+              'artist-credit': [{ name: 'Band' }],
+              releases: [
+                { date: '1990', status: 'Bootleg', 'release-group': { 'secondary-types': ['Live'] } },
+                { date: '1990-06', status: 'Promotion', 'release-group': {} },
+                { date: '1989', status: 'Official', 'release-group': { 'secondary-types': ['Demo'] } },
+                { date: '1991-03', status: 'Official', 'release-group': {} }, // the single
+                { date: '1991-08-12', status: 'Official', 'release-group': {} }, // the album
+              ],
+            },
+          ],
+        }),
+      ),
+    )
+    expect(await settled(earliestRecordingYear('Band', 'Song'))).toBe(1991)
+  })
+
+  it('counts a release whose status MusicBrainz does not record', async () => {
+    // Unknown status is common and usually legitimate; dropping it would cost
+    // more coverage than the oddities it would catch.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        res({
+          recordings: [
+            {
+              score: 100,
+              title: 'Song',
+              'artist-credit': [{ name: 'Other Band' }],
+              releases: [{ date: '1977', 'release-group': {} }],
+            },
+          ],
+        }),
+      ),
+    )
+    expect(await settled(earliestRecordingYear('Other Band', 'Song'))).toBe(1977)
+  })
+
   it('requires the artist to be credited and the base title to match', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue(
         res({
           recordings: [
-            { score: 100, title: 'Smells Like Teen Spirit', 'first-release-date': '1979', 'artist-credit': [{ name: 'Some Cover Band' }] },
-            { score: 100, title: 'A Totally Different Song', 'first-release-date': '1980', 'artist-credit': [{ name: 'Nirvana' }] },
+            { score: 100, title: 'Smells Like Teen Spirit', 'artist-credit': [{ name: 'Some Cover Band' }],
+              releases: [{ date: '1979', status: 'Official', 'release-group': {} }] },
+            { score: 100, title: 'A Totally Different Song', 'artist-credit': [{ name: 'Nirvana' }],
+              releases: [{ date: '1980', status: 'Official', 'release-group': {} }] },
           ],
         }),
       ),
