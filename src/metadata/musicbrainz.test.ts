@@ -40,6 +40,27 @@ function res(body: unknown, init: { ok?: boolean; status?: number } = {}): Respo
   } as unknown as Response
 }
 
+describe('rate-limit retry', () => {
+  it('retries a 503 and keeps the answer it finally gets', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(res({}, { ok: false, status: 503 }))
+      .mockResolvedValueOnce(
+        res({ title: 'Song', releases: [{ 'release-group': { 'first-release-date': '1977' } }] }),
+      )
+    vi.stubGlobal('fetch', fetchMock)
+    expect(await settled(yearFromRecordingMbid('mbid-retry'))).toEqual({ year: 1977, live: false })
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('gives up after two retries rather than looping', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(res({}, { ok: false, status: 503 }))
+    vi.stubGlobal('fetch', fetchMock)
+    expect(await settled(yearFromRecordingMbid('mbid-retry-fail'))).toEqual({ live: false })
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+  })
+})
+
 describe('yearFromRecordingMbid', () => {
   it('does not cache a 503 response', async () => {
     // Rate-limited/unavailable: returns the empty value WITHOUT caching it.

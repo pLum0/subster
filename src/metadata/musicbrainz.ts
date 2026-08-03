@@ -31,11 +31,28 @@ const mbidByAlbumTrack = new JsonCache<string | null>('mb-album-track')
 // the Capacitor native-HTTP path.
 const USER_AGENT = 'Subster/0.1.0 (+https://github.com/pLum0/subster)'
 
-const throttled = rateLimit(
+const fetchMb = rateLimit(
   (url: string) =>
     fetch(url, { headers: { Accept: 'application/json', 'User-Agent': USER_AGENT } }),
   1100,
 )
+
+/**
+ * MusicBrainz answers **503** whenever we brush against its 1 req/s limit, and
+ * it does so often enough to matter: 23 of ~300 requests in one measured deck
+ * build. Every caller below treats a failed request as "no answer" and moves
+ * down to a weaker rung, so without a retry a burst of 503s quietly turns into
+ * wrong years and songs dropped as live (see issue #13). Retrying costs a
+ * second and is far cheaper than a wrong card.
+ */
+async function throttled(url: string): Promise<Response> {
+  let res = await fetchMb(url)
+  for (let attempt = 1; attempt <= 2 && (res.status === 503 || res.status === 429); attempt++) {
+    await new Promise((r) => setTimeout(r, 1000 * attempt))
+    res = await fetchMb(url)
+  }
+  return res
+}
 
 export function yearOf(date: string | undefined): number | undefined {
   const m = /^(\d{4})/.exec(date ?? '')
