@@ -2,6 +2,7 @@ import type { Song } from '../subsonic/client'
 import { trackIsrc } from './deezer'
 import {
   earliestRecordingYear,
+  recordingMbidFromAlbum,
   recordingMbidFromIsrc,
   recordingMbidFromText,
   yearFromRecordingMbid,
@@ -16,8 +17,11 @@ export type { RecordingYear } from './musicbrainz'
 /**
  * Resolve the original release year (and live-ness) for a song.
  *
- * First find a recording (the file's MBID, else ISRC / Deezer-ISRC / fuzzy
- * text) and read its earliest *studio* release-group date. If the recording is
+ * First find a recording (the file's MBID, else ISRC / the album's tracklist /
+ * Deezer-ISRC / fuzzy text) and read its earliest *studio* release-group date.
+ * Libraries whose server never exposes MBIDs — every Nextcloud Music one — live
+ * on the lower rungs, so the album rung matters there: it is what tells a
+ * "Mothership" rip of *No Quarter* apart from the Page & Plant one. If the recording is
  * live, we say so (caller drops it). If it's compilation-only (no clean date),
  * fall back to a release-group search that finds the original single/album.
  * Returns `{ live: false }` with no year only when nothing resolves (caller
@@ -39,11 +43,19 @@ export async function resolveOriginalYear(
   // 1. Recording MBID straight from the server (best case).
   let year = await consider(song.musicBrainzId)
 
-  // 2-4. Only if the server gave no MBID: resolve one via ISRC / Deezer / text.
+  // 2-5. Only if the server gave no MBID: resolve one from what the tags do
+  // carry. Strongest first — an exact identifier, then the album (which says
+  // *which* recording this is), then Deezer's ISRC, then bare text.
   if (!done(year) && !song.musicBrainzId) {
     for (const isrc of song.isrc ?? []) {
       year = await consider(await recordingMbidFromIsrc(isrc))
       if (done(year)) break
+    }
+  }
+  if (!done(year) && !song.musicBrainzId && song.album) {
+    year = await consider(await recordingMbidFromAlbum(song.artist, song.title, song.album))
+    if (!done(year)) {
+      year = await consider(await recordingMbidFromText(song.artist, song.title, song.album))
     }
   }
   if (!done(year) && !song.musicBrainzId && deezerTrackId) {

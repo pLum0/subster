@@ -24,6 +24,7 @@ const yearByRgSearch = new JsonCache<number | null>('mb-rg-year')
 const earliestByText = new JsonCache<number | null>('mb-earliest-v1')
 const mbidByIsrc = new JsonCache<string | null>('mb-isrc')
 const mbidByText = new JsonCache<string | null>('mb-text')
+const mbidByAlbumTrack = new JsonCache<string | null>('mb-album-track')
 
 // MusicBrainz asks clients to identify themselves (rate-limit policy). Browsers
 // silently drop the forbidden User-Agent header, so this only takes effect in
@@ -77,6 +78,9 @@ interface RgSearch {
 
 const isCompOrLive = (types: string[] | undefined) =>
   (types ?? []).some((t) => /compilation|live/i.test(t))
+
+/** Escape quotes/backslashes for a Lucene field query. */
+const esc = (s: string) => s.replace(/(["\\])/g, '\\$1')
 
 // Match-time normalizer. Kept separate from curated.ts's norm() (which also
 // strips articles/parentheticals) and from deezer.ts's cache key on purpose:
@@ -152,7 +156,6 @@ export async function yearFromReleaseGroupSearch(
   const cached = yearByRgSearch.get(key)
   if (cached !== undefined) return cached ?? undefined
 
-  const esc = (s: string) => s.replace(/(["\\])/g, '\\$1')
   const query = `artist:"${esc(artist)}" AND releasegroup:"${esc(title)}"`
   const wanted = normalize(title)
   let year: number | undefined
@@ -213,7 +216,6 @@ export async function earliestRecordingYear(
 
   const want = baseTitle(title)
   const wantArtist = artist.toLowerCase()
-  const esc = (s: string) => s.replace(/(["\\])/g, '\\$1')
   // Search for the base song, not the specific mix/version.
   const query = `recording:"${esc(stripQualifiers(title) || title)}" AND artist:"${esc(artist)}"`
   let year: number | undefined
@@ -261,19 +263,101 @@ export async function recordingMbidFromIsrc(isrc: string): Promise<string | unde
   return mbid
 }
 
-/** Last-resort fuzzy match: recording MBID from artist/title text (unreliable). */
+interface ReleaseSearch {
+  releases?: Array<{ id: string; score?: number }>
+}
+interface ReleaseLookup {
+  media?: Array<{ tracks?: Array<{ title?: string; recording?: { id: string } }> }>
+}
+
+/**
+ * The album as MusicBrainz catalogues it. File tags carry disc markers and
+ * edition suffixes that no release title has — "Mothership CD2", "Nevermind
+ * (Deluxe Edition)" — and they stop the release search from matching.
+ */
+function releaseTitle(album: string): string {
+  return album
+    .replace(/\([^)]*\)|\[[^\]]*\]/g, ' ')
+    .replace(/[,:]?\s*\b(?:cd|disc|disk)\s*\.?\s*\d+\b/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+/**
+ * The album is the one extra fact an untagged file carries that says *which*
+ * of a song's many recordings it holds. Find the release it came from, then
+ * read the recording id straight off that release's tracklist — an exact
+ * lookup rather than a scored guess, and the recording it yields is the same
+ * one a MusicBrainz-tagged file would have named.
+ *
+ * Being a compilation is no obstacle: a best-of still lists the original
+ * recording, and `yearFromRecordingMbid` then discards the compilation's own
+ * release-group when it picks the year. Measured on a 94-song sample, this
+ * recovers the file's real recording MBID for 62% of songs where the fuzzy
+ * text search manages 50% (see issue #13).
+ */
+export async function recordingMbidFromAlbum(
+  artist: string,
+  title: string,
+  album: string,
+): Promise<string | undefined> {
+  const key = `${artist}::${album}::${title}`.toLowerCase().replace(/\s+/g, ' ').trim()
+  const cached = mbidByAlbumTrack.get(key)
+  if (cached !== undefined) return cached ?? undefined
+
+  const release = releaseTitle(album)
+  if (!release) return undefined
+  const want = baseTitle(title)
+  let mbid: string | undefined
+  try {
+    const query = `release:"${esc(release)}" AND artist:"${esc(artist)}"`
+    const res = await throttled(`${MB}/release?query=${encodeURIComponent(query)}&fmt=json&limit=5`)
+    if (!res.ok) return undefined // rate-limited/server error: don't poison the cache
+    const found = (((await res.json()) as ReleaseSearch).releases ?? [])
+      .filter((r) => (r.score ?? 0) >= 90)
+      .slice(0, 3)
+    for (const rel of found) {
+      const full = await throttled(`${MB}/release/${rel.id}?inc=recordings&fmt=json`)
+      if (!full.ok) return undefined
+      const tracks = (((await full.json()) as ReleaseLookup).media ?? []).flatMap((m) => m.tracks ?? [])
+      const hit = tracks.find((t) => baseTitle(t.title ?? '') === want)
+      if (hit?.recording?.id) {
+        mbid = hit.recording.id
+        break
+      }
+    }
+  } catch {
+    return undefined
+  }
+  mbidByAlbumTrack.set(key, mbid ?? null)
+  return mbid
+}
+
+/**
+ * Fuzzy match: recording MBID from artist/title text. Passing the `album`
+ * constrains the search to recordings that appear on it, which is a much
+ * stronger signal than the score alone — use it whenever the file has one and
+ * `recordingMbidFromAlbum` came up empty. Without an album this is the
+ * last-resort rung and genuinely unreliable.
+ */
 export async function recordingMbidFromText(
   artist: string,
   title: string,
+  album?: string,
 ): Promise<string | undefined> {
-  const k = `${artist}::${title}`.toLowerCase().replace(/\s+/g, ' ').trim()
+  const release = album ? releaseTitle(album) : ''
+  const k = `${artist}::${title}${release ? `::@${release}` : ''}`
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim()
   const cached = mbidByText.get(k)
   if (cached !== undefined) return cached ?? undefined
 
-  const esc = (s: string) => s.replace(/(["\\])/g, '\\$1')
   // Match the base song and skip live takes, so we don't fuzzy-match a live
   // recording (which would wrongly flag the whole song as live and drop it).
-  const query = `recording:"${esc(stripQualifiers(title) || title)}" AND artist:"${esc(artist)}"`
+  const query =
+    `recording:"${esc(stripQualifiers(title) || title)}" AND artist:"${esc(artist)}"` +
+    (release ? ` AND release:"${esc(release)}"` : '')
   let mbid: string | undefined
   try {
     const res = await throttled(`${MB}/recording?query=${encodeURIComponent(query)}&fmt=json&limit=5`)

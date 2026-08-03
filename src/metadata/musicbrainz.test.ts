@@ -1,5 +1,12 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
-import { earliestRecordingYear, looksLive, yearFromRecordingMbid, yearOf } from './musicbrainz'
+import {
+  earliestRecordingYear,
+  looksLive,
+  recordingMbidFromAlbum,
+  recordingMbidFromText,
+  yearFromRecordingMbid,
+  yearOf,
+} from './musicbrainz'
 
 // The module-level rate limiter (1100ms) uses Date.now() + setTimeout, so fake
 // timers are installed for the WHOLE file: the limiter's `last` timestamp lives
@@ -110,6 +117,90 @@ describe('earliestRecordingYear', () => {
       ),
     )
     expect(await settled(earliestRecordingYear('Nirvana', 'Smells Like Teen Spirit'))).toBeUndefined()
+  })
+})
+
+describe('recordingMbidFromAlbum', () => {
+  /** Fetch stub that answers by URL fragment, recording every URL it saw. */
+  function stub(routes: Array<[RegExp, unknown]>) {
+    const urls: string[] = []
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string) => {
+        urls.push(url)
+        const hit = routes.find(([re]) => re.test(url))
+        return Promise.resolve(res(hit ? hit[1] : {}))
+      }),
+    )
+    return urls
+  }
+
+  it('reads the recording id off the release tracklist', async () => {
+    // The real case from issue #13: a compilation rip whose tracklist still
+    // names the original 1973 recording.
+    const urls = stub([
+      [/\/release\?query/, { releases: [{ id: 'rel-1', score: 100 }] }],
+      [
+        /\/release\/rel-1/,
+        {
+          media: [
+            { tracks: [{ title: 'The Song Remains the Same', recording: { id: 'rec-other' } }] },
+            { tracks: [{ title: 'No Quarter', recording: { id: 'rec-1973' } }] },
+          ],
+        },
+      ],
+    ])
+    expect(await settled(recordingMbidFromAlbum('Led Zeppelin', 'No Quarter', 'Mothership CD2'))).toBe(
+      'rec-1973',
+    )
+    // The disc marker never reaches MusicBrainz — no release is called "CD2".
+    expect(urls[0]).toContain(encodeURIComponent('release:"Mothership"'))
+  })
+
+  it('caches a miss so a second call makes no request', async () => {
+    stub([[/\/release\?query/, { releases: [] }]])
+    expect(await settled(recordingMbidFromAlbum('A', 'B', 'Album X'))).toBeUndefined()
+
+    const spy = vi.fn()
+    vi.stubGlobal('fetch', spy)
+    expect(await settled(recordingMbidFromAlbum('A', 'B', 'Album X'))).toBeUndefined()
+    expect(spy).not.toHaveBeenCalled()
+  })
+
+  it('does not cache a rate-limited release search', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(res({}, { ok: false, status: 503 })))
+    expect(await settled(recordingMbidFromAlbum('A', 'B', 'Album 503'))).toBeUndefined()
+
+    stub([
+      [/\/release\?query/, { releases: [{ id: 'rel-9', score: 100 }] }],
+      [/\/release\/rel-9/, { media: [{ tracks: [{ title: 'B', recording: { id: 'rec-9' } }] }] }],
+    ])
+    expect(await settled(recordingMbidFromAlbum('A', 'B', 'Album 503'))).toBe('rec-9')
+  })
+})
+
+describe('recordingMbidFromText', () => {
+  it('constrains the query to the album when one is given, and caches it apart', async () => {
+    const seen: string[] = []
+    const reply = (id: string) =>
+      vi.fn((url: string) => {
+        seen.push(url)
+        return Promise.resolve(
+          res({ recordings: [{ id, score: 100, title: 'Song', 'artist-credit': [{ name: 'Artist' }] }] }),
+        )
+      })
+
+    vi.stubGlobal('fetch', reply('rec-on-album'))
+    expect(await settled(recordingMbidFromText('Artist', 'Song', 'The Album (Deluxe Edition)'))).toBe(
+      'rec-on-album',
+    )
+    expect(seen[0]).toContain(encodeURIComponent('AND release:"The Album"'))
+
+    // The album-less form is a different question, so it is a different cache
+    // entry and hits the network again.
+    vi.stubGlobal('fetch', reply('rec-anywhere'))
+    expect(await settled(recordingMbidFromText('Artist', 'Song'))).toBe('rec-anywhere')
+    expect(seen[1]).not.toContain('release:')
   })
 })
 
