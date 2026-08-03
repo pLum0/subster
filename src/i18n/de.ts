@@ -31,7 +31,14 @@ export const de: Dict = {
       'Der Server ist nicht erreichbar. Im Browser ist das meist CORS: Die Seite (diese Adresszeile) und dein Musikserver haben verschiedene Adressen, deshalb blockiert der Browser die Antworten, sofern der Server es nicht erlaubt — siehe README.',
     networkErrorNative: 'Der Server ist nicht erreichbar — prüfe Adresse und Netzwerk.',
     privacy:
-      'Nur dieses Gerät speichert die Zugangsdaten, und nur als gesalzenen Token — nie das Klartext-Passwort. Wenn der Server auf einer anderen Domain liegt und der Test fehlschlägt, ist es fast immer CORS (siehe README).',
+      'Nur dieses Gerät speichert die Zugangsdaten, normalerweise als gesalzenen Token statt des Passworts selbst. Wenn der Server auf einer anderen Domain liegt und der Test fehlschlägt, ist es fast immer CORS (siehe README).',
+    legacyAuth:
+      'Dieser Server akzeptiert nur die Legacy-Authentifizierung — das Passwort wird direkt übertragen statt als Token — deshalb muss das Passwort selbst auf diesem Gerät gespeichert werden. Ein App-Passwort statt des Kontopassworts ist hier eine gute Idee.',
+    legacyAuthSaved: 'Gespeichert — aber beachte, wie dieser Server dich anmeldet:',
+    continueAnyway: 'Verstanden, weiter',
+    saved: 'Gespeicherte Server',
+    activeServer: 'aktiv',
+    addServer: '+ Weiteren Server hinzufügen',
     clearCaches: 'Metadaten-Cache leeren',
     cachesCleared: (n: number) => `✓ ${n} Einträge gelöscht`,
     clearCachesHint:

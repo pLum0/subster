@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Layout } from '../Layout'
 import { Button } from '../../ui/Button'
-import { useEffectiveServer } from '../../store/configStore'
+import { useActiveServer, useEffectiveServer } from '../../store/configStore'
 import { useGameStore } from '../../store/gameStore'
-import { useSetupStore } from '../../store/setupStore'
+import { serverPrefs, useSetupStore } from '../../store/setupStore'
 import {
   getGenres,
   getMusicFolders,
@@ -21,10 +21,14 @@ export function GameSetup() {
   const server = useEffectiveServer()
   const startGame = useGameStore((s) => s.startGame)
   const savePrefs = useSetupStore((s) => s.savePrefs)
+  const activeServerId = useActiveServer()?.id
   const t = useT()
 
-  // Seed from the last-used setup (persisted), falling back to localized defaults.
+  // Seed from the last-used setup (persisted), falling back to localized
+  // defaults. The deck source is remembered per server, since a library,
+  // playlist or genre id means nothing on a different one.
   const saved = useSetupStore.getState().prefs
+  const savedSource = serverPrefs(saved, activeServerId)
   const [names, setNames] = useState<string[]>(() =>
     saved.names.length ? saved.names : [t.setup.playerN(1), t.setup.playerN(2)],
   )
@@ -37,14 +41,14 @@ export function GameSetup() {
   const [lockOnEnd, setLockOnEnd] = useState(saved.lockOnEnd)
   const [yearFrom, setYearFrom] = useState(saved.yearFrom)
   const [yearTo, setYearTo] = useState(saved.yearTo)
-  const [genre, setGenre] = useState(saved.genre)
+  const [genre, setGenre] = useState(savedSource.genre)
   const [genres, setGenres] = useState<Genre[]>([])
   const [folders, setFolders] = useState<MusicFolder[]>([])
-  const [musicFolderId, setMusicFolderId] = useState<string>(saved.musicFolderId)
+  const [musicFolderId, setMusicFolderId] = useState<string>(savedSource.musicFolderId)
   const [playlists, setPlaylists] = useState<Playlist[]>([])
   // Non-empty = deck comes from this playlist instead of a library.
-  const [playlistId, setPlaylistId] = useState<string>(saved.playlistId ?? '')
-  const [metadataMode, setMetadataMode] = useState<MetadataMode>(saved.metadataMode ?? 'full')
+  const [playlistId, setPlaylistId] = useState<string>(savedSource.playlistId)
+  const [metadataMode, setMetadataMode] = useState<MetadataMode>(savedSource.metadataMode)
 
   useEffect(() => {
     if (!server) {
@@ -52,7 +56,13 @@ export function GameSetup() {
       return
     }
     getGenres(server)
-      .then((g) => setGenres(g.filter((x) => x.name).sort((a, b) => b.songCount - a.songCount)))
+      .then((g) => {
+        const available = g.filter((x) => x.name).sort((a, b) => b.songCount - a.songCount)
+        setGenres(available)
+        // A remembered genre the server no longer reports would filter the
+        // deck down to nothing, so drop it rather than fail the build.
+        setGenre((cur) => (cur && available.some((x) => x.name === cur) ? cur : ''))
+      })
       .catch(() => setGenres([]))
     getMusicFolders(server)
       .then((fs) => {
@@ -118,10 +128,9 @@ export function GameSetup() {
       lockOnEnd,
       yearFrom,
       yearTo,
-      genre,
-      musicFolderId,
-      playlistId,
-      metadataMode,
+      byServer: activeServerId
+        ? { ...saved.byServer, [activeServerId]: { genre, musicFolderId, playlistId, metadataMode } }
+        : saved.byServer,
     })
     startGame({
       playerNames: names,

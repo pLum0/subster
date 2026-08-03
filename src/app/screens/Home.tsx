@@ -1,12 +1,12 @@
 import { useNavigate } from 'react-router-dom'
 import { Layout } from '../Layout'
 import { Button } from '../../ui/Button'
-import { useConfigStore } from '../../store/configStore'
+import { useActiveServer, useConfigStore } from '../../store/configStore'
 import { useT, useLocaleStore, LANGUAGES } from '../../i18n'
 
 export function Home() {
   const navigate = useNavigate()
-  const server = useConfigStore((s) => s.server)
+  const server = useActiveServer()
   const effective = useConfigStore((s) => s.effective)
   // The reachability check picked the LAN address — show it, so the local-
   // address feature is verifiable at a glance.
