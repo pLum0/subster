@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { artistKey, curatedEntries, curatedKey, isCurated } from './curated'
+import { artistKey, curatedEntries, curatedKey, HIT_LISTS, isCurated } from './curated'
 import curatedDict from './curated.json'
 
 describe('curated famous-songs canon', () => {
@@ -48,5 +48,26 @@ describe('curated famous-songs canon', () => {
       ),
     )
     expect(bad).toEqual([])
+  })
+})
+
+describe('hit lists', () => {
+  it('lists the bundled ones, international first', () => {
+    expect(HIT_LISTS[0]).toBe('intl')
+    expect(HIT_LISTS).toEqual(expect.arrayContaining(['de', 'at', 'ch']))
+  })
+
+  it('counts a song as famous only on the chosen lists', () => {
+    // A German number one that is on no other list.
+    expect(isCurated('ABBA', 'One of Us')).toBe(true)
+    expect(isCurated('ABBA', 'One of Us', ['de'])).toBe(true)
+    expect(isCurated('ABBA', 'One of Us', ['intl', 'ch'])).toBe(false)
+    expect(isCurated('ABBA', 'One of Us', [])).toBe(true) // none chosen = all
+  })
+
+  it('records every list a song is on', () => {
+    const entry = curatedEntries.find((e) => curatedKey(e.artist, e.title) === curatedKey('ABBA', 'One of Us'))
+    expect(entry?.lists).toEqual(['de'])
+    expect(curatedEntries.some((e) => e.lists.length > 1)).toBe(true)
   })
 })

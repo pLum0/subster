@@ -86,6 +86,10 @@ export const de: Dict = {
     diffDeep: 'Raritäten',
     diffDeepHint: 'Eher unbekannt',
     popularityNote: 'Die Bekanntheit kommt von Deezer — die weite Welt, nicht deine eigenen Plays.',
+    hitLists: 'Hitlisten',
+    hitListIntl: 'International',
+    hitListsHint:
+      'Welche mitgelieferten Listen als bekannte Songs zählen: die internationale (Billboard-Jahrescharts, Bestenlisten) und die Nummer-eins-Hits einzelner Länder.',
     yearRange: 'Jahresbereich',
     anyYear: 'egal',
     genre: 'Genre',

@@ -1,7 +1,7 @@
 import type { ServerConfig } from '../store/configStore'
 import { getArtists, getMusicFolders, mainArtist, search3, type Song } from '../subsonic/client'
 import { JsonCache } from '../lib/cache'
-import { artistKey, curatedEntries, curatedKey } from './curated'
+import { artistKey, curatedEntries, curatedKey, onHitLists } from './curated'
 import { interleave, shuffle } from '../subsonic/deck'
 
 /**
@@ -100,11 +100,18 @@ async function canonCandidates(config: ServerConfig, musicFolderIds?: string[], 
 
 export async function findCuratedSongs(
   config: ServerConfig,
-  opts: { musicFolderIds?: string[]; want: number; maxSearches: number },
+  opts: {
+    musicFolderIds?: string[]
+    want: number
+    maxSearches: number
+    /** Only songs on these hit lists; unset or empty = every list. */
+    hitLists?: string[]
+  },
 ): Promise<Song[]> {
   const canon = await canonCandidates(config, opts.musicFolderIds)
   if (!canon) return []
-  const { candidates, lookup } = canon
+  const { lookup } = canon
+  const candidates = canon.candidates.filter((c) => onHitLists(c.e, opts.hitLists))
   // Alternate known hits with songs not searched yet. A known hit is a
   // near-sure find, so it keeps the budget productive; the unsearched ones
   // keep the canon rotating. Searching known hits first instead locked every

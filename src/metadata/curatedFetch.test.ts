@@ -141,6 +141,22 @@ describe('findCuratedSongs', () => {
   })
 })
 
+describe('findCuratedSongs with hit lists', () => {
+  it('only searches songs on the chosen lists', async () => {
+    const config = server('https://lists.example')
+    getArtists.mockResolvedValue(['ABBA'])
+    search3.mockResolvedValue([])
+    await findCuratedSongs(config, { ...opts, hitLists: ['intl'] })
+    const queries = search3.mock.calls.map(([, o]) => o.query)
+    expect(queries.length).toBeGreaterThan(0)
+    expect(queries).not.toContain('ABBA One of Us') // a German number one only
+
+    search3.mockClear()
+    await findCuratedSongs(server('https://lists-de.example'), { ...opts, hitLists: ['de'] })
+    expect(search3.mock.calls.map(([, o]) => o.query)).toContain('ABBA One of Us')
+  })
+})
+
 describe('scanCuratedSongs', () => {
   it('searches every canon song once, counts the ones present, and reports progress', async () => {
     const config = server('https://scan.example')

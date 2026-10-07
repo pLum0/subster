@@ -16,7 +16,8 @@ import {
 import type { MetadataMode } from '../../subsonic/deck'
 import { useExclusionStore } from '../../store/exclusionStore'
 import { MAX_WIN_TARGET, MIN_WIN_TARGET, parseWinTarget } from '../../game/rules'
-import { useT } from '../../i18n'
+import { useLocaleStore, useT } from '../../i18n'
+import { HIT_LISTS } from '../../metadata/curated'
 
 export function GameSetup() {
   const navigate = useNavigate()
@@ -48,6 +49,8 @@ export function GameSetup() {
   const [lockOnEnd, setLockOnEnd] = useState(saved.lockOnEnd)
   const [yearFrom, setYearFrom] = useState(saved.yearFrom)
   const [yearTo, setYearTo] = useState(saved.yearTo)
+  // Empty = every bundled hit list.
+  const [hitLists, setHitLists] = useState<string[]>(saved.hitLists ?? [])
   const [genre, setGenre] = useState(savedSource.genre)
   const [genres, setGenres] = useState<Genre[]>([])
   const [folders, setFolders] = useState<MusicFolder[]>([])
@@ -137,6 +140,26 @@ export function GameSetup() {
 
 
   // Empty means every library, so all of them show as selected.
+  const locale = useLocaleStore((s) => s.locale)
+  // Country lists are named by their region code, in the UI's language, so
+  // a list added later needs no translation of its own.
+  const hitListName = (list: string) => {
+    if (list === 'intl') return t.setup.hitListIntl
+    try {
+      return new Intl.DisplayNames([locale], { type: 'region' }).of(list.toUpperCase()) ?? list
+    } catch {
+      return list.toUpperCase()
+    }
+  }
+  const hitListSelected = (list: string) => !hitLists.length || hitLists.includes(list)
+
+  function toggleHitList(list: string) {
+    const current = HIT_LISTS.filter(hitListSelected)
+    const next = current.includes(list) ? current.filter((x) => x !== list) : [...current, list]
+    if (!next.length) return // at least one list has to stay in
+    setHitLists(next.length === HIT_LISTS.length ? [] : next)
+  }
+
   const folderSelected = (id: string) => !musicFolderIds?.length || musicFolderIds.includes(id)
 
   function toggleFolder(id: string) {
@@ -161,6 +184,7 @@ export function GameSetup() {
       lockOnEnd,
       yearFrom,
       yearTo,
+      hitLists,
       byServer: activeServerId
         ? { ...saved.byServer, [activeServerId]: { genre, musicFolderIds, playlistId, metadataMode } }
         : saved.byServer,
@@ -181,6 +205,7 @@ export function GameSetup() {
         yearTo: yearTo ? Number(yearTo) : undefined,
         genre: playlistId ? undefined : genre || undefined,
         metadataMode,
+        hitLists: hitLists.length ? hitLists : undefined,
       },
       playback: { trigger, clip, randomStart, lockOnEnd },
     })
@@ -363,6 +388,36 @@ export function GameSetup() {
             </div>
             <span className="text-xs text-slate-500">{t.setup.popularityNote}</span>
           </div>
+
+          {/* The famous-songs boost is off for Deep cuts (it keeps that deck
+              obscure), so the choice of lists has no effect there. Playlists
+              don't search for famous songs at all.
+              Chips suit a handful of lists. Past about eight (three rows),
+              switch to a summary row ("International, Germany +2 →") leading
+              to a checkbox screen like Exclusions. */}
+          {!playlistId && (
+            <div
+              className={`flex flex-col gap-1.5 ${
+                metadataMode === 'full' && difficulty === 'deep' ? 'pointer-events-none opacity-40' : ''
+              }`}
+            >
+              <span>{t.setup.hitLists}</span>
+              <div className="flex flex-wrap gap-2">
+                {HIT_LISTS.map((list) => (
+                  <button
+                    key={list}
+                    type="button"
+                    className={seg(hitListSelected(list))}
+                    aria-pressed={hitListSelected(list)}
+                    onClick={() => toggleHitList(list)}
+                  >
+                    {hitListName(list)}
+                  </button>
+                ))}
+              </div>
+              <span className="text-xs text-slate-500">{t.setup.hitListsHint}</span>
+            </div>
+          )}
 
           <div className="flex items-center justify-between gap-3">
             <span>{t.setup.yearRange}</span>

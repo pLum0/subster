@@ -67,7 +67,8 @@ No physical cards, no accounts, **no backend** — just your phone and your own 
   region-grouped in `src/metadata/curated.json`). Canon songs found in your library are boosted into
   the deck regardless of Deezer play counts, which under-rate older or regional hits. A one-time
   scan in the server settings finds all of them on your server up front (see
-  [Find the famous songs on your server](#find-the-famous-songs-on-your-server))
+  [Find the famous songs on your server](#find-the-famous-songs-on-your-server)). Which lists count
+  is a choice in the game setup, e.g. only the international one and your own country's
 - ✅ **Incremental deck**: the pool is ranked cheaply, then original years are resolved chunk by chunk —
   the first chunk lets play start; the rest fill in the background (Deezer/MusicBrainz calls are cached).
 - ✅ Core game: blind playback, timeline placement, reveal, win target (configurable)
@@ -136,6 +137,9 @@ boosted into the deck, and in the offline modes the list is the only popularity 
 holds an international core (`intl`: Billboard Year-End Hot 100 and songs on several "greatest
 songs" lists) plus the **#1 singles of each country** it covers, currently Germany (`de`), Austria
 (`at`) and Switzerland (`ch`). If hits from your country are missing, a PR adding it is welcome.
+
+Players pick which lists count under **Hit lists** in the game setup (all by default). A new
+country shows up there by itself, named in the player's language from its code.
 
 **The format** is one object per country, keyed by its lowercase
 [ISO 3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) code, mapping each artist

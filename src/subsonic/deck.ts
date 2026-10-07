@@ -165,6 +165,8 @@ export interface DeckOptions {
   difficulty?: Difficulty
   /** Which external metadata services may be contacted. Defaults to 'full'. */
   metadataMode?: MetadataMode
+  /** Bundled hit lists whose songs count as famous; unset or empty = all. */
+  hitLists?: string[]
 }
 
 /**

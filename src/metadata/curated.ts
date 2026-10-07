@@ -43,29 +43,45 @@ export function curatedKey(artist: string, title: string): string {
 export interface CuratedEntry {
   artist: string
   title: string
+  /** The lists it is on (`intl`, `de`, …) — a song can top several. */
+  lists: string[]
 }
 
 /** Region code → artist → titles. `intl` plus per-country #1s. */
 type CuratedRegions = Record<string, Record<string, string[]>>
 const curatedRegions = curatedDict as CuratedRegions
 
+/** The bundled hit lists, in file order: `intl` first, then the countries. */
+export const HIT_LISTS: string[] = Object.keys(curatedRegions)
+
 export const curatedEntries: CuratedEntry[] = []
-const CURATED = new Set<string>()
-const seenEntry = new Set<string>()
-for (const region of Object.values(curatedRegions)) {
+const CURATED = new Map<string, CuratedEntry>()
+for (const [list, region] of Object.entries(curatedRegions)) {
   for (const [artist, titles] of Object.entries(region)) {
     for (const title of titles) {
       const k = curatedKey(artist, title)
-      CURATED.add(k)
-      if (!seenEntry.has(k)) {
-        seenEntry.add(k)
-        curatedEntries.push({ artist, title }) // deduped across regions
+      const known = CURATED.get(k)
+      if (known) {
+        if (!known.lists.includes(list)) known.lists.push(list)
+      } else {
+        const entry = { artist, title, lists: [list] }
+        CURATED.set(k, entry)
+        curatedEntries.push(entry) // deduped across lists
       }
     }
   }
 }
 
-/** Is this song part of the famous-songs canon? */
-export function isCurated(artist: string, title: string): boolean {
-  return CURATED.has(curatedKey(artist, title))
+/**
+ * Is this entry on one of the chosen lists? None chosen (undefined or empty)
+ * means every list.
+ */
+export function onHitLists(entry: CuratedEntry, lists?: string[]): boolean {
+  return !lists?.length || entry.lists.some((l) => lists.includes(l))
+}
+
+/** Is this song part of the famous-songs canon (on the chosen lists, if any)? */
+export function isCurated(artist: string, title: string, lists?: string[]): boolean {
+  const entry = CURATED.get(curatedKey(artist, title))
+  return !!entry && onHitLists(entry, lists)
 }
