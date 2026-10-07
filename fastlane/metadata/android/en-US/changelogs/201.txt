@@ -1,0 +1,6 @@
+• Dutch translation, thanks to Max
+• Famous songs rotate between games instead of repeating. "Find famous songs" in the server settings gives full variety right away
+• Choose which hit lists count: international, Germany, Austria, Switzerland
+• Small libraries no longer flood the deck; an artist's songs alternate between players
+• Fixed wrong years for some songs with several artists
+• Also new since 0.1.9: several libraries at once, exclusions, typeable "cards to win"
