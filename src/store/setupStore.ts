@@ -46,6 +46,12 @@ export interface SetupPrefs {
   lockOnEnd: boolean
   yearFrom: string
   yearTo: string
+  /**
+   * Bundled hit lists whose songs count as famous: empty = all of them, so a
+   * list added in a later version is included too. Optional: not in settings
+   * saved by older versions.
+   */
+  hitLists?: string[]
   /** Deck source per server id — see ServerPrefs. */
   byServer: Record<string, ServerPrefs>
 }
@@ -61,6 +67,7 @@ export const DEFAULT_PREFS: SetupPrefs = {
   lockOnEnd: false,
   yearFrom: '',
   yearTo: '',
+  hitLists: [],
   byServer: {},
 }
 

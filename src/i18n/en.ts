@@ -93,6 +93,10 @@ export const en = {
     diffDeep: 'Deep cuts',
     diffDeepHint: 'More obscure',
     popularityNote: 'Popularity comes from Deezer — the wider world, not your own plays.',
+    hitLists: 'Hit lists',
+    hitListIntl: 'International',
+    hitListsHint:
+      "Which bundled lists count as famous songs: the international one (Billboard year-end charts, greatest-songs lists) and each country's number-one hits.",
     yearRange: 'Year range',
     anyYear: 'any',
     genre: 'Genre',

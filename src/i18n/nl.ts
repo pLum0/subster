@@ -86,6 +86,10 @@ export const nl: Dict = {
     diffDeep: 'Verborgen parels',
     diffDeepHint: 'Meer obscure nummers',
     popularityNote: 'Populariteit komt van Deezer — de buitenwereld, niet je eigen afspeeltellingen.',
+    hitLists: 'Hitlijsten',
+    hitListIntl: 'Internationaal',
+    hitListsHint:
+      'Welke meegeleverde lijsten als bekende nummers tellen: de internationale (Billboard-jaarlijsten, lijsten van beste nummers) en de nummer-1-hits per land.',
     yearRange: 'Jaarbereik',
     anyYear: 'Alle',
     genre: 'Genre',
