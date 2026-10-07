@@ -391,7 +391,10 @@ export function GameSetup() {
 
           {/* The famous-songs boost is off for Deep cuts (it keeps that deck
               obscure), so the choice of lists has no effect there. Playlists
-              don't search for famous songs at all. */}
+              don't search for famous songs at all.
+              Chips suit a handful of lists. Past about eight (three rows),
+              switch to a summary row ("International, Germany +2 →") leading
+              to a checkbox screen like Exclusions. */}
           {!playlistId && (
             <div
               className={`flex flex-col gap-1.5 ${
