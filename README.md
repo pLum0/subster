@@ -173,6 +173,15 @@ selection is somebody's own work.
 source. We can put the list together as a PR for you to check against what you know of your
 country's charts.
 
+**Genre lists** fit the same format: a list doesn't have to be a country, it is just a key with
+artists and titles under it. A "metal" or "schlager" list would mostly help together with the
+genre filter, where Deezer ranks the famous songs of a niche genre too low to count as hits. The
+same source rule applies, so year-end genre charts (e.g. Billboard's Hot Country Songs or Hot
+Rap Songs, Germany's official Schlager chart) work, while editorial "greatest metal songs" lists
+don't. Unlike a country, a genre can't be named from its code, so the first genre list will also
+need a translated label in the app. If you have a list with a clean chart source, open an issue
+or a PR and we'll add that part.
+
 ## How it connects to Subsonic
 
 On first launch you enter your server URL, username, and password. Normally the password is **not
