@@ -1,0 +1,6 @@
+• Niederländische Übersetzung – danke, Max
+• Bekannte Songs wiederholen sich nicht mehr von Spiel zu Spiel. „Bekannte Songs suchen“ (Servereinstellungen) bringt sofort Abwechslung
+• Wähle, welche Hitlisten zählen: international, DE, AT, CH
+• Kleine Bibliotheken fluten den Stapel nicht mehr; Songs eines Interpreten verteilen sich auf alle Spieler
+• Falsche Jahre bei Songs mit mehreren Interpreten behoben
+• Außerdem neu seit 0.1.9: mehrere Bibliotheken, Ausschlüsse, eintippbare „Karten zum Sieg“
