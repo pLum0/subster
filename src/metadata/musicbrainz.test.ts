@@ -247,6 +247,49 @@ describe('earliestRecordingYear', () => {
     )
     expect(await settled(earliestRecordingYear('Nirvana', 'Smells Like Teen Spirit'))).toBeUndefined()
   })
+
+  it('narrows a truncated page to recordings released before the best year so far', async () => {
+    // The real "Get Back" case: 988 matches, and the page of 100 held only the
+    // 2003 "Naked" mix; the 1970 album recording sat beyond it.
+    const rec = (date: string) => ({
+      score: 99,
+      title: 'Get Back',
+      'artist-credit': [{ name: 'The Beatles' }],
+      releases: [{ date, status: 'Official', 'release-group': {} }],
+    })
+    const fetchMock = vi.fn((url: string) => {
+      const q = decodeURIComponent(url)
+      if (q.includes('firstreleasedate:{* TO 1970}')) return Promise.resolve(res({ count: 5, recordings: [] }))
+      if (q.includes('firstreleasedate:{* TO 2003}'))
+        return Promise.resolve(res({ count: 201, recordings: [rec('1970-05-08')] }))
+      return Promise.resolve(res({ count: 988, recordings: [rec('2003-11-17')] }))
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    expect(await settled(earliestRecordingYear('The Beatles', 'Get Back'))).toBe(1970)
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+  })
+
+  it('keeps the year found so far when a narrowing round fails, without caching it', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        res({
+          count: 500,
+          recordings: [
+            { score: 100, title: 'Hit', 'artist-credit': [{ name: 'Act' }],
+              releases: [{ date: '2003', status: 'Official', 'release-group': {} }] },
+          ],
+        }),
+      )
+      .mockResolvedValue(res({}, { ok: false, status: 503 }))
+    vi.stubGlobal('fetch', fetchMock)
+    expect(await settled(earliestRecordingYear('Act', 'Hit'))).toBe(2003)
+
+    const retry = vi.fn().mockResolvedValue(res({ count: 0, recordings: [] }))
+    vi.stubGlobal('fetch', retry)
+    await settled(earliestRecordingYear('Act', 'Hit'))
+    expect(retry).toHaveBeenCalled()
+  })
 })
 
 describe('recordingMbidFromAlbum', () => {

@@ -21,7 +21,10 @@ export interface RecordingYear {
 
 const yearByMbid = new JsonCache<RecordingYear>('mb-year-v4')
 const yearByRgSearch = new JsonCache<number | null>('mb-rg-year')
-const earliestByText = new JsonCache<number | null>('mb-earliest-v2')
+// v3: the search now narrows past its 100-result page (see earliestRecordingYear);
+// v2 answers can be a later year that page happened to cut short.
+const earliestByText = new JsonCache<number | null>('mb-earliest-v3')
+JsonCache.dropNamespace('mb-earliest-v2')
 // v2: the earliest of an ISRC's recordings, no longer simply the first listed.
 const mbidByIsrc = new JsonCache<string | null>('mb-isrc-v2')
 JsonCache.dropNamespace('mb-isrc')
@@ -233,6 +236,7 @@ interface SearchRelease {
 }
 
 interface RecSearchDated {
+  count?: number
   recordings?: Array<{
     id: string
     score?: number
@@ -261,6 +265,30 @@ function firstPublished(releases: SearchRelease[] | undefined): number | undefin
   return years.length ? Math.min(...years) : undefined
 }
 
+/** Search rounds `earliestRecordingYear` may spend narrowing a truncated page. */
+const EARLIEST_ROUNDS = 4
+
+/** Earliest `firstPublished` year among the search hits that are this song. */
+function earliestOf(
+  recordings: NonNullable<RecSearchDated['recordings']>,
+  want: string,
+  wantArtist: string,
+): number | undefined {
+  const years: number[] = []
+  for (const rec of recordings) {
+    if ((rec.score ?? 0) < 90) continue
+    if (baseTitle(rec.title ?? '') !== want) continue
+    if (looksLive(rec.title) || looksLive(rec.disambiguation)) continue
+    const credited = (rec['artist-credit'] ?? []).some((c) =>
+      (c.name ?? '').toLowerCase().includes(wantArtist),
+    )
+    if (!credited) continue
+    const y = firstPublished(rec.releases)
+    if (y) years.push(y)
+  }
+  return years.length ? Math.min(...years) : undefined
+}
+
 /**
  * The earliest year any recording of this song was **published**, matched by
  * artist + **base title** (version/mix/remaster qualifiers stripped), from a
@@ -286,29 +314,30 @@ export async function earliestRecordingYear(
   const want = baseTitle(title)
   const wantArtist = artist.toLowerCase()
   // Search for the base song, not the specific mix/version.
-  const query = `recording:"${esc(stripQualifiers(title) || title)}" AND artist:"${esc(artist)}"`
+  const base = `recording:"${esc(stripQualifiers(title) || title)}" AND artist:"${esc(artist)}"`
   let year: number | undefined
-  try {
-    const res = await throttled(
-      `${MB}/recording?query=${encodeURIComponent(query)}&fmt=json&limit=100`,
-    )
-    if (!res.ok) return undefined // rate-limited/server error: don't poison the cache
-    const data = (await res.json()) as RecSearchDated
-    const years: number[] = []
-    for (const rec of data.recordings ?? []) {
-      if ((rec.score ?? 0) < 90) continue
-      if (baseTitle(rec.title ?? '') !== want) continue
-      if (looksLive(rec.title) || looksLive(rec.disambiguation)) continue
-      const credited = (rec['artist-credit'] ?? []).some((c) =>
-        (c.name ?? '').toLowerCase().includes(wantArtist),
-      )
-      if (!credited) continue
-      const y = firstPublished(rec.releases)
-      if (y) years.push(y)
+  // A famous song has hundreds of matching recordings — 988 for the Beatles'
+  // "Get Back" — nearly all scoring 99, so which 100 come back is arbitrary:
+  // the one that dates it to 1970 can fall outside the page, and the card said
+  // 2003. So while the page is truncated, search again for only the recordings
+  // first released *before* the best year so far — a much smaller set holding
+  // every candidate able to lower it. Each round strictly lowers the bound.
+  for (let round = 0; round < EARLIEST_ROUNDS; round++) {
+    const query = year === undefined ? base : `${base} AND firstreleasedate:{* TO ${year}}`
+    let data: RecSearchDated
+    try {
+      const res = await throttled(`${MB}/recording?query=${encodeURIComponent(query)}&fmt=json&limit=100`)
+      if (!res.ok) return year // rate-limited/server error: keep what we have, don't cache
+      data = (await res.json()) as RecSearchDated
+    } catch {
+      return year
     }
-    if (years.length) year = Math.min(...years)
-  } catch {
-    return undefined
+    const recordings = data.recordings ?? []
+    const found = earliestOf(recordings, want, wantArtist)
+    const improved = found !== undefined && (year === undefined || found < year)
+    if (improved) year = found
+    const truncated = (data.count ?? 0) > recordings.length
+    if (!truncated || !improved) break
   }
   earliestByText.set(key, year ?? null)
   return year
