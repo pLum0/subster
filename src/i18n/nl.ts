@@ -160,6 +160,13 @@ export const nl: Dict = {
     exclude: 'Voortaan uitsluiten',
     excludeSong: 'Dit nummer',
     excludeArtist: (name: string) => `Alles van ${name}`,
+    reportYear: 'Verkeerd jaar?',
+    reportYearHint:
+      'Kopieer de gegevens hieronder en meld ze op GitHub, nu of na het spel. De volledige taglijst van het bestand helpt, maar is optioneel en kan wachten tot je tijd hebt.',
+    reportYearCopy: 'Gegevens kopiëren',
+    reportYearOpen: 'GitHub-issue aanmaken',
+    reportYearCopied: '✓ Gekopieerd',
+    reportYearCopyFailed: 'Kopiëren lukte niet: selecteer de tekst hieronder.',
     namedOn: '✓ Titel + artiest goed (+1 munt)',
     namedOff: (name: string) => `🎤 Heeft ${name} de titel + artiest genoemd?`,
     nextPlayer: 'Volgende speler →',

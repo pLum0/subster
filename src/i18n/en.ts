@@ -171,6 +171,13 @@ export const en = {
     exclude: 'Exclude from now on',
     excludeSong: 'This song',
     excludeArtist: (name: string) => `Everything by ${name}`,
+    reportYear: 'Wrong year?',
+    reportYearHint:
+      'Copy the details below and report them on GitHub, now or after the game. Adding the file’s full tag list helps, but is optional and can wait until you have time.',
+    reportYearCopy: 'Copy details',
+    reportYearOpen: 'Create GitHub issue',
+    reportYearCopied: '✓ Copied',
+    reportYearCopyFailed: "Couldn't copy: select the text below instead.",
     namedOn: '✓ Named title + artist (+1 token)',
     namedOff: (name: string) => `🎤 ${name} named title + artist?`,
     nextPlayer: 'Next player →',

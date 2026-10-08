@@ -14,6 +14,26 @@ import { yearFromWikidata } from './wikidata'
 export { searchTrack } from './deezer'
 export type { RecordingYear } from './musicbrainz'
 
+/** Which step found the recording the year was read from. */
+export type RecordingSource = 'server' | 'isrc' | 'album' | 'albumSearch' | 'deezerIsrc' | 'text'
+
+/**
+ * How `resolveOriginalYear` arrived at its answer, for a wrong-year report:
+ * the recording it settled on and what every source said. Not cached — it is
+ * rebuilt from the (cached) answers of each step.
+ */
+export interface YearTrace {
+  recording?: { mbid: string; source: RecordingSource; year?: number }
+  // For each fallback: undefined = not asked, null = asked and found nothing.
+  earliest?: number | null
+  wikidata?: number | null
+  releaseGroup?: number | null
+}
+
+export interface ResolvedYear extends RecordingYear {
+  trace: YearTrace
+}
+
 /**
  * Resolve the original release year (and live-ness) for a song.
  *
@@ -30,46 +50,51 @@ export type { RecordingYear } from './musicbrainz'
 export async function resolveOriginalYear(
   song: Song,
   deezerTrackId?: number,
-): Promise<RecordingYear> {
+): Promise<ResolvedYear> {
   const artist = mainArtist(song)
+  const trace: YearTrace = {}
   let live = false
-  const consider = async (mbid: string | undefined): Promise<number | undefined> => {
+  const consider = async (
+    mbid: string | undefined,
+    source: RecordingSource,
+  ): Promise<number | undefined> => {
     if (!mbid) return undefined
     const r = await yearFromRecordingMbid(mbid)
     if (r.live) live = true
+    trace.recording = { mbid, source, year: r.year }
     return r.year
   }
   const done = (year: number | undefined) => year !== undefined || live
 
   // 1. Recording MBID straight from the server (best case).
-  let year = await consider(song.musicBrainzId)
+  let year = await consider(song.musicBrainzId, 'server')
 
   // 2-5. Only if the server gave no MBID: resolve one from what the tags do
   // carry. Strongest first — an exact identifier, then the album (which says
   // *which* recording this is), then Deezer's ISRC, then bare text.
   if (!done(year) && !song.musicBrainzId) {
     for (const isrc of song.isrc ?? []) {
-      year = await consider(await recordingMbidFromIsrc(isrc))
+      year = await consider(await recordingMbidFromIsrc(isrc), 'isrc')
       if (done(year)) break
     }
   }
   if (!done(year) && !song.musicBrainzId && song.album) {
-    year = await consider(await recordingMbidFromAlbum(artist, song.title, song.album))
+    year = await consider(await recordingMbidFromAlbum(artist, song.title, song.album), 'album')
     if (!done(year)) {
-      year = await consider(await recordingMbidFromText(artist, song.title, song.album))
+      year = await consider(await recordingMbidFromText(artist, song.title, song.album), 'albumSearch')
     }
   }
   if (!done(year) && !song.musicBrainzId && deezerTrackId) {
     for (const isrc of await trackIsrc(deezerTrackId)) {
-      year = await consider(await recordingMbidFromIsrc(isrc))
+      year = await consider(await recordingMbidFromIsrc(isrc), 'deezerIsrc')
       if (done(year)) break
     }
   }
   if (!done(year) && !song.musicBrainzId) {
-    year = await consider(await recordingMbidFromText(artist, song.title))
+    year = await consider(await recordingMbidFromText(artist, song.title), 'text')
   }
 
-  if (live) return { live: true }
+  if (live) return { live: true, trace }
 
   // 5. Refine with the earliest recording year (MusicBrainz), which corrects
   // files tagged with a later comp/mix year (e.g. a "Butch Vig Mix" off a 2004
@@ -84,10 +109,13 @@ export async function resolveOriginalYear(
     earliestRecordingYear(artist, song.title),
     year === undefined ? yearFromWikidata(artist, song.title) : Promise.resolve(undefined),
   ])
+  trace.earliest = searchYear ?? null
+  if (year === undefined) trace.wikidata = wdYear ?? null
   const candidates = [year, searchYear, wdYear].filter((y): y is number => y !== undefined)
-  if (candidates.length) return { year: Math.min(...candidates), live: false }
+  if (candidates.length) return { year: Math.min(...candidates), live: false, trace }
 
   // 6. Still nothing → original release-group search (singles named after the song).
   const rgYear = await yearFromReleaseGroupSearch(artist, song.title)
-  return { year: rgYear, live: false }
+  trace.releaseGroup = rgYear ?? null
+  return { year: rgYear, live: false, trace }
 }
