@@ -36,6 +36,7 @@ interface DeezerSearchResponse {
 }
 
 const searchCache = new JsonCache<DeezerHit | null>('deezer-search-v2')
+JsonCache.dropNamespace('deezer-search')
 const isrcCache = new JsonCache<string[] | null>('deezer-isrc')
 const artistTopCache = new JsonCache<Record<string, number> | null>('deezer-artist-top')
 
