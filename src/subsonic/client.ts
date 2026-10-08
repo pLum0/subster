@@ -1,5 +1,6 @@
 import md5 from 'blueimp-md5'
 import type { ServerConfig } from '../store/configStore'
+import type { YearInfo } from './cards'
 
 const API_VERSION = '1.16.1'
 const CLIENT_NAME = 'subster'
@@ -26,6 +27,8 @@ export interface Song {
   isrc?: string[]
   /** Whether the song is starred ("Liked Songs" / favorites) on the server. */
   starred?: boolean
+  /** How the card's year was found; set by cardMaker for wrong-year reports. */
+  yearInfo?: YearInfo
 }
 
 export interface Genre {

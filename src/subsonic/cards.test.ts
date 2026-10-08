@@ -22,6 +22,7 @@ describe('cardMaker (offline / external-API-free)', () => {
     const card = await make(song({ musicBrainzId: 'mbid', isrc: ['ISRC1'] }))
     expect(card?.year).toBe(1984) // file-tag year, verbatim
     expect(spy).not.toHaveBeenCalled()
+    expect(card?.yearInfo).toEqual({ mode: 'offline', tagYear: 1984, trace: undefined })
   })
 
   it('drops yearless songs and respects the year range', async () => {

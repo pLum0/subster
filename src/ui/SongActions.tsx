@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
+import { Capacitor } from '@capacitor/core'
 import {
   addSongToPlaylist,
   getPlaylists,
   getPlaylistSongs,
   mainArtist,
+  ping,
   removeSongFromPlaylist,
   setSongStarred,
   type Playlist,
@@ -13,6 +15,7 @@ import { getEffectiveServer } from '../store/configStore'
 import { useExclusionStore, useIsExcluded } from '../store/exclusionStore'
 import type { Exclusion } from '../subsonic/exclusions'
 import { useT } from '../i18n'
+import { yearReportBody, yearReportUrl, type ReportContext } from '../metadata/yearReport'
 
 // Per-playlist row state: 'added'/'duplicate' mean the song is in the playlist
 // (tapping again removes it); 'removed'/'failed'/undefined mean it isn't
@@ -22,7 +25,8 @@ type AddState = 'busy' | 'added' | 'duplicate' | 'removed' | 'failed'
 /**
  * Icon overlay for the revealed song card: star ("like") the song and add it
  * to a playlist — for that "what a pearl, I want to keep this" moment — or
- * exclude the song or its artist from ever being dealt again.
+ * exclude the song or its artist from ever being dealt again, or report a
+ * wrong year.
  * Rendered only once the song is revealed, so it never spoils a blind guess.
  */
 export function SongActions({ song }: { song: Song }) {
@@ -30,6 +34,7 @@ export function SongActions({ song }: { song: Song }) {
   const [liked, setLiked] = useState(!!song.starred)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [excludeOpen, setExcludeOpen] = useState(false)
+  const [reportOpen, setReportOpen] = useState(false)
   const toggleExclusion = useExclusionStore((s) => s.toggle)
   const songExclusion: Exclusion = { kind: 'song', title: song.title, artist: song.artist }
   const artistExclusion: Exclusion = { kind: 'artist', name: mainArtist(song) }
@@ -45,6 +50,7 @@ export function SongActions({ song }: { song: Song }) {
     setLiked(!!song.starred)
     setPickerOpen(false)
     setExcludeOpen(false)
+    setReportOpen(false)
     setResults({})
   }, [song.id])
 
@@ -63,6 +69,7 @@ export function SongActions({ song }: { song: Song }) {
 
   async function togglePicker() {
     setExcludeOpen(false)
+    setReportOpen(false)
     setPickerOpen((v) => !v)
     if (playlists) return
     const server = getEffectiveServer()
@@ -125,6 +132,7 @@ export function SongActions({ song }: { song: Song }) {
         <button
           onClick={() => {
             setPickerOpen(false)
+            setReportOpen(false)
             setExcludeOpen((v) => !v)
           }}
           aria-expanded={excludeOpen}
@@ -133,7 +141,20 @@ export function SongActions({ song }: { song: Song }) {
         >
           <BanIcon />
         </button>
+        <button
+          onClick={() => {
+            setPickerOpen(false)
+            setExcludeOpen(false)
+            setReportOpen((v) => !v)
+          }}
+          aria-expanded={reportOpen}
+          aria-label={t.game.reportYear}
+          className={`${iconBtn} ${reportOpen ? 'text-brand-300' : 'text-white'}`}
+        >
+          <FlagIcon />
+        </button>
       </div>
+      {reportOpen && <ReportPanel song={song} />}
       {excludeOpen && (
         <div className="absolute right-0 top-full z-20 mt-1.5 w-56 rounded-xl bg-slate-900/95 p-1.5 text-left shadow-xl ring-1 ring-slate-600">
           <span className="block px-2 pb-1 pt-0.5 text-xs text-slate-400">{t.game.exclude}</span>
@@ -226,6 +247,101 @@ function PlaylistAddIcon() {
 }
 
 /** A circle with a slash — "never again". */
+/**
+ * Wrong-year report: the details a maintainer needs, copied to the clipboard
+ * so the user can report them whenever they have time, and optionally
+ * prefilled into a new GitHub issue right away. The text is also shown, so the
+ * user sees what they would submit and can copy it by hand if copying fails.
+ */
+function ReportPanel({ song }: { song: Song }) {
+  const t = useT()
+  const [server, setServer] = useState<ReportContext['server']>()
+  const [copied, setCopied] = useState<boolean | null>(null)
+
+  // The server's software and version are worth one ping; the address is not
+  // part of the report.
+  useEffect(() => {
+    const config = getEffectiveServer()
+    if (!config) return
+    let live = true
+    void ping(config).then((r) => {
+      if (live && r.ok) setServer({ type: r.type, version: r.serverVersion })
+    })
+    return () => {
+      live = false
+    }
+  }, [])
+
+  const body = yearReportBody(song, {
+    appVersion: __APP_VERSION__,
+    platform: Capacitor.isNativePlatform() ? 'Android' : 'web',
+    server,
+  })
+
+  const button =
+    'block w-full rounded-lg bg-brand-600 px-3 py-2 text-center text-sm font-semibold text-white active:bg-brand-700'
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(body)
+      setCopied(true)
+    } catch {
+      setCopied(false)
+    }
+  }
+
+  return (
+    <div className="absolute right-0 top-full z-20 mt-1.5 w-64 rounded-xl bg-slate-900/95 p-2 text-left shadow-xl ring-1 ring-slate-600">
+      <span className="block px-1 pb-1 text-xs text-slate-400">{t.game.reportYear}</span>
+      <p className="px-1 pb-2 text-xs text-slate-300">{t.game.reportYearHint}</p>
+      <div className="flex flex-col gap-1.5">
+        <button onClick={() => void copy()} className={button}>
+          {t.game.reportYearCopy}
+        </button>
+        {/* Optional. A real link, not window.open: on Android the WebView hands
+            it to the browser. It copies too, so the text is on the clipboard
+            whichever way the user goes. */}
+        <a
+          href={yearReportUrl(song, body)}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => void copy()}
+          className={button}
+        >
+          {t.game.reportYearOpen}
+        </a>
+      </div>
+      {copied === true && <p className="px-1 pt-1.5 text-xs text-emerald-400">{t.game.reportYearCopied}</p>}
+      {copied === false && <p className="px-1 pt-1.5 text-xs text-red-400">{t.game.reportYearCopyFailed}</p>}
+      <textarea
+        readOnly
+        value={body}
+        onFocus={(e) => e.currentTarget.select()}
+        rows={6}
+        className="mt-2 w-full resize-none rounded-lg bg-slate-800 p-2 font-mono text-[10px] leading-snug text-slate-300"
+      />
+    </div>
+  )
+}
+
+function FlagIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="h-5 w-5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M5 21V4" />
+      <path d="M5 4h11l-2 4 2 4H5" />
+    </svg>
+  )
+}
+
 function BanIcon() {
   return (
     <svg

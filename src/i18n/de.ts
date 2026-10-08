@@ -161,6 +161,13 @@ export const de: Dict = {
     exclude: 'Künftig ausschließen',
     excludeSong: 'Diesen Song',
     excludeArtist: (name: string) => `Alles von ${name}`,
+    reportYear: 'Falsches Jahr?',
+    reportYearHint:
+      'Kopiere die Informationen unten und melde sie auf GitHub, jetzt oder nach dem Spiel. Die vollständige Tag-Liste der Datei hilft, ist aber optional und kann warten, bis du Zeit hast.',
+    reportYearCopy: 'Informationen kopieren',
+    reportYearOpen: 'GitHub-Issue erstellen',
+    reportYearCopied: '✓ Kopiert',
+    reportYearCopyFailed: 'Kopieren ging nicht: markiere den Text unten.',
     namedOn: '✓ Titel + Interpret genannt (+1 Token)',
     namedOff: (name: string) => `🎤 Hat ${name} Titel + Interpret genannt?`,
     nextPlayer: 'Nächster Spieler →',

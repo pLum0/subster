@@ -295,20 +295,19 @@ it, and it is worked out automatically from incomplete public data. These are th
 
 ### Report a wrong year
 
-If a card shows a wrong year, [open an issue](https://github.com/pLum0/subster/issues/new) and
-include:
+If a card shows a wrong year, tap the **flag** on the revealed card. It copies everything we need
+(the song as your server sends it, how Subster found the year, the app and server versions), and
+can also open a [new issue](https://github.com/pLum0/subster/issues/new) with it already filled
+in. You don't have to do that mid-game: the text stays on the clipboard to report later.
 
-1. **The full tag list of the file**: every tag, not only artist, title and year. The MusicBrainz
-   IDs, the ISRC and the album are what tell us which recording Subster found. For example, run
-   `ffprobe -hide_banner "song.mp3"` or `exiftool "song.mp3"`, or copy everything your tag editor
-   shows (Mp3tag, foobar2000, MusicBrainz Picard).
-2. The year the card showed and the year you expected, ideally with a source.
-3. Your server software (Navidrome, Nextcloud Music, …) and the **Online metadata** mode of the
-   game.
+Please add the year you expected, ideally with a source. The **full tag list of the file** helps
+too, but is optional and can be added later, e.g. from a computer: the app only sees what your
+server sends, while the file's MusicBrainz IDs, ISRC and album say exactly which recording it is.
+Run `ffprobe -hide_banner "song.mp3"` or `exiftool "song.mp3"`, or copy everything your tag editor
+shows (Mp3tag, foobar2000, MusicBrainz Picard).
 
-Without the tags we can't tell which recording the lookup found, so we can't fix it. If the
-mistake is in MusicBrainz itself, correcting it [there](https://musicbrainz.org/) fixes it for
-everyone who uses MusicBrainz. After that, clear the metadata caches to see the new year.
+If the mistake is in MusicBrainz itself, correcting it [there](https://musicbrainz.org/) fixes it
+for everyone who uses MusicBrainz. After that, clear the metadata caches to see the new year.
 
 ## Android (install on a device via adb)
 
