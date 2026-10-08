@@ -44,7 +44,7 @@ export const nl: Dict = {
     clearCaches: 'Metadata-cache legen',
     cachesCleared: (n: number) => `✓ ${n} cache-items gewist`,
     clearCachesHint:
-      'Gecachte opzoekingen bij Deezer, MusicBrainz en Wikidata verlopen nooit. Wis ze wanneer een verkeerd jaar of een verkeerde ranking bij de bron is gecorrigeerd — bij de volgende deck-opbouw wordt alles opnieuw opgehaald. De serververbinding en je instellingen blijven bewaard.',
+      'Gecachte antwoorden van Deezer, MusicBrainz en Wikidata verlopen nooit (alleen opzoekingen zonder resultaat worden na een paar maanden opnieuw geprobeerd). Wis ze wanneer een verkeerd jaar of een verkeerde ranking bij de bron is gecorrigeerd — bij de volgende deck-opbouw wordt alles opnieuw opgehaald. De serververbinding en je instellingen blijven bewaard.',
     canonTitle: 'Bekende nummers',
     canonRecommended: 'Aanbevolen: zoek de bekende nummers op deze server',
     findCanon: 'Bekende nummers op deze server zoeken',

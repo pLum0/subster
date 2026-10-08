@@ -35,10 +35,14 @@ interface DeezerSearchResponse {
   error?: unknown
 }
 
-const searchCache = new JsonCache<DeezerHit | null>('deezer-search-v2')
+const searchCache = new JsonCache<DeezerHit | null>('deezer-search-v2', { retryMisses: {} })
 JsonCache.dropNamespace('deezer-search')
-const isrcCache = new JsonCache<string[] | null>('deezer-isrc')
-const artistTopCache = new JsonCache<Record<string, number> | null>('deezer-artist-top')
+const isrcCache = new JsonCache<string[] | null>('deezer-isrc', {
+  retryMisses: { isMiss: (v) => !v?.length },
+})
+const artistTopCache = new JsonCache<Record<string, number> | null>('deezer-artist-top', {
+  retryMisses: { isMiss: (v) => !v || Object.keys(v).length === 0 },
+})
 
 // localStorage cache key — deliberately NOT shared with curated.ts's fuzzier
 // norm(): changing this shape would invalidate every existing cache entry.

@@ -19,21 +19,24 @@ export interface RecordingYear {
   live: boolean
 }
 
-const yearByMbid = new JsonCache<RecordingYear>('mb-year-v4')
+const yearByMbid = new JsonCache<RecordingYear>('mb-year-v4', {
+  // No studio year yet: MusicBrainz may gain the original release later.
+  retryMisses: { isMiss: (r) => r.year === undefined && !r.live },
+})
 JsonCache.dropNamespace('mb-year-v3')
 JsonCache.dropNamespace('mb-year-v2')
-const yearByRgSearch = new JsonCache<number | null>('mb-rg-year')
+const yearByRgSearch = new JsonCache<number | null>('mb-rg-year', { retryMisses: {} })
 // v3: the search now narrows past its 100-result page (see earliestRecordingYear);
 // v2 answers can be a later year that page happened to cut short. v1 was
 // never dropped when v2 replaced it, so clear it out too.
-const earliestByText = new JsonCache<number | null>('mb-earliest-v3')
+const earliestByText = new JsonCache<number | null>('mb-earliest-v3', { retryMisses: {} })
 JsonCache.dropNamespace('mb-earliest-v2')
 JsonCache.dropNamespace('mb-earliest-v1')
 // v2: the earliest of an ISRC's recordings, no longer simply the first listed.
-const mbidByIsrc = new JsonCache<string | null>('mb-isrc-v2')
+const mbidByIsrc = new JsonCache<string | null>('mb-isrc-v2', { retryMisses: {} })
 JsonCache.dropNamespace('mb-isrc')
-const mbidByText = new JsonCache<string | null>('mb-text')
-const mbidByAlbumTrack = new JsonCache<string | null>('mb-album-track')
+const mbidByText = new JsonCache<string | null>('mb-text', { retryMisses: {} })
+const mbidByAlbumTrack = new JsonCache<string | null>('mb-album-track', { retryMisses: {} })
 
 // MusicBrainz asks clients to identify themselves (rate-limit policy). Browsers
 // silently drop the forbidden User-Agent header, so this only takes effect in

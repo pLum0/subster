@@ -30,7 +30,7 @@ const SONG_TYPES = new Set([
 ])
 
 // v2: v1 predates alias matching — retry its cached misses.
-const yearCache = new JsonCache<number | null>('wd-year-v2')
+const yearCache = new JsonCache<number | null>('wd-year-v2', { retryMisses: {} })
 JsonCache.dropNamespace('wd-year-v1')
 
 // Wikimedia asks CORS clients to identify via Api-User-Agent (the real
