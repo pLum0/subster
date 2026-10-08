@@ -20,6 +20,8 @@ export interface RecordingYear {
 }
 
 const yearByMbid = new JsonCache<RecordingYear>('mb-year-v4')
+JsonCache.dropNamespace('mb-year-v3')
+JsonCache.dropNamespace('mb-year-v2')
 const yearByRgSearch = new JsonCache<number | null>('mb-rg-year')
 // v3: the search now narrows past its 100-result page (see earliestRecordingYear);
 // v2 answers can be a later year that page happened to cut short. v1 was
