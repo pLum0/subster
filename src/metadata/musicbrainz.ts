@@ -22,9 +22,11 @@ export interface RecordingYear {
 const yearByMbid = new JsonCache<RecordingYear>('mb-year-v4')
 const yearByRgSearch = new JsonCache<number | null>('mb-rg-year')
 // v3: the search now narrows past its 100-result page (see earliestRecordingYear);
-// v2 answers can be a later year that page happened to cut short.
+// v2 answers can be a later year that page happened to cut short. v1 was
+// never dropped when v2 replaced it, so clear it out too.
 const earliestByText = new JsonCache<number | null>('mb-earliest-v3')
 JsonCache.dropNamespace('mb-earliest-v2')
+JsonCache.dropNamespace('mb-earliest-v1')
 // v2: the earliest of an ISRC's recordings, no longer simply the first listed.
 const mbidByIsrc = new JsonCache<string | null>('mb-isrc-v2')
 JsonCache.dropNamespace('mb-isrc')
