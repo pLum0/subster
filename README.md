@@ -57,7 +57,8 @@ No physical cards, no accounts, **no backend** — just your phone and your own 
   tracks — we fall back to [Wikidata](https://www.wikidata.org/)'s published year (e.g. a 1936 chanson
   MusicBrainz dates 1992). If nothing resolves, the song is **left out of the deck** rather than dealt
   with its file year: a wrong year makes a placement objectively wrong, while a missing song only makes
-  the deck shorter. *Offline* mode is the exception and uses the file year by design.
+  the deck shorter. *Offline* mode is the exception and uses the file year by design. It isn't
+  perfect: see [How reliable are the years?](#how-reliable-are-the-years)
 - ✅ **Deck builder**: a **75/25 known-vs-rest mix** where "known" is chosen by *oversampling* — a large
   pool is ranked by [Deezer](https://www.deezer.com/)'s track `rank` and the genuinely top-ranked songs
   become the known pool (the obscure long tail is discarded), so the deck actually feels recognizable.
@@ -265,6 +266,52 @@ such as *"562 of the 8064 bundled famous songs found (1018 by artists in your li
 network it takes seconds; on mobile data it can take a few minutes, and it keeps running if you
 leave the screen. Run it again after adding music: each run searches everything afresh, which is
 also how songs added since are noticed.
+
+## How reliable are the years?
+
+Most cards get the right year, but not all of them. The year can only be as good as the data behind
+it, and it is worked out automatically from incomplete public data. These are the known weak spots:
+
+- **MusicBrainz is only as complete as its volunteers made it.** A recording can be missing, have
+  no dates, or have a wrong one. Wikidata only fills in for songs MusicBrainz can't date at all.
+- **Compilation rips depend on a search.** If the file's recording appears only on best-ofs (common
+  for songs that first came out as singles), the year comes from a text search for the artist and
+  title. That search finds every version of the song, live takes and remixes included, and has to
+  pick the earliest real release among them. For very famous songs that is hundreds of recordings,
+  and sometimes the right one is not found or doesn't count: the Beatles' "Get Back" resolves to
+  1970 (*Let It Be*) rather than its 1969 single, because the single is credited to "The Beatles
+  with Billy Preston".
+- **"The year" is not always clear-cut.** A single and its album, or the UK and US releases, can
+  be a year apart. Subster takes the first official release anywhere, which is not always the
+  year a song is remembered for.
+- **The earliest match wins.** Subster takes the earliest release among the matches, so an older,
+  different song with the same title by the same artist can make a card too old.
+- **Failed requests.** MusicBrainz rejects requests when it is busy. Subster retries, but if a
+  lookup still fails, a song can be left out or keep a later year. Failed lookups aren't stored,
+  so the next deck build tries again.
+- **Answers are stored on the device.** Once looked up, a year is kept until you clear it, even if
+  MusicBrainz is corrected in the meantime. **Server settings → Clear metadata caches** makes the
+  next deck build look everything up again.
+- **Offline mode uses your tags.** In *Offline* mode (the default for playlists), the year is the
+  file's own year tag, unchanged. That is often the year of the remaster or compilation, not of
+  the song.
+
+### Report a wrong year
+
+If a card shows a wrong year, [open an issue](https://github.com/pLum0/subster/issues/new) and
+include:
+
+1. **The full tag list of the file**: every tag, not only artist, title and year. The MusicBrainz
+   IDs, the ISRC and the album are what tell us which recording Subster found. For example, run
+   `ffprobe -hide_banner "song.mp3"` or `exiftool "song.mp3"`, or copy everything your tag editor
+   shows (Mp3tag, foobar2000, MusicBrainz Picard).
+2. The year the card showed and the year you expected, ideally with a source.
+3. Your server software (Navidrome, Nextcloud Music, …) and the **Online metadata** mode of the
+   game.
+
+Without the tags we can't tell which recording the lookup found, so we can't fix it. If the
+mistake is in MusicBrainz itself, correcting it [there](https://musicbrainz.org/) fixes it for
+everyone who uses MusicBrainz. After that, clear the metadata caches to see the new year.
 
 ## Android (install on a device via adb)
 
