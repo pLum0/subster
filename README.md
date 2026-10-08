@@ -277,10 +277,7 @@ it, and it is worked out automatically from incomplete public data. These are th
 - **Compilation rips depend on a search.** If the file's recording appears only on best-ofs (common
   for songs that first came out as singles), the year comes from a text search for the artist and
   title. That search finds every version of the song, live takes and remixes included, and has to
-  pick the earliest real release among them. For very famous songs that is hundreds of recordings,
-  and sometimes the right one is not found or doesn't count: the Beatles' "Get Back" resolves to
-  1970 (*Let It Be*) rather than its 1969 single, because the single is credited to "The Beatles
-  with Billy Preston".
+  pick the earliest real release among them.
 - **"The year" is not always clear-cut.** A single and its album, or the UK and US releases, can
   be a year apart. Subster takes the first official release anywhere, which is not always the
   year a song is remembered for.
