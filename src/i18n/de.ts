@@ -44,7 +44,7 @@ export const de: Dict = {
     clearCaches: 'Metadaten-Cache leeren',
     cachesCleared: (n: number) => `✓ ${n} Einträge gelöscht`,
     clearCachesHint:
-      'Gespeicherte Deezer/MusicBrainz/Wikidata-Abfragen verfallen nie. Leere sie, wenn ein falsches Jahr oder Ranking an der Quelle korrigiert wurde — das nächste Deck holt alles frisch. Serververbindung und Einstellungen bleiben erhalten.',
+      'Gespeicherte Deezer/MusicBrainz/Wikidata-Antworten verfallen nie (nur Abfragen ohne Ergebnis werden nach einigen Monaten wiederholt). Leere sie, wenn ein falsches Jahr oder Ranking an der Quelle korrigiert wurde — das nächste Deck holt alles frisch. Serververbindung und Einstellungen bleiben erhalten.',
     canonTitle: 'Bekannte Songs',
     canonRecommended: 'Empfohlen: bekannte Songs auf diesem Server suchen',
     findCanon: 'Bekannte Songs auf diesem Server suchen',

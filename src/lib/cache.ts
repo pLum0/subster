@@ -6,6 +6,35 @@
  */
 const PREFIX = 'subster.cache.'
 
+/**
+ * How long a cached miss counts before it is asked again: about four months.
+ * Long enough that a library's misses don't slow every deck build, short
+ * enough that a recording added to MusicBrainz in the meantime gets found.
+ */
+export const MISS_RETRY_MS = 120 * 24 * 60 * 60 * 1000
+
+/**
+ * A stored miss: the value plus when it was looked up. Found answers are
+ * stored bare, so they and every entry written before misses expired read
+ * back unchanged.
+ */
+interface StoredMiss {
+  missAt: number
+  v: unknown
+}
+
+const isStoredMiss = (x: unknown): x is StoredMiss =>
+  typeof x === 'object' && x !== null && typeof (x as StoredMiss).missAt === 'number' && 'v' in x
+
+export interface CacheOptions<T> {
+  /**
+   * Retry lookups that found nothing. A miss is stored with its time and
+   * counts as not cached once it is older than `after` (default
+   * MISS_RETRY_MS). Found answers stay permanent.
+   */
+  retryMisses?: { isMiss?: (value: T) => boolean; after?: number }
+}
+
 // Live instances, so clearAll() can also drop their in-memory copies.
 const instances = new Set<JsonCache<unknown>>()
 
@@ -31,8 +60,17 @@ function removeStored(prefix: string): number {
 export class JsonCache<T> {
   private mem = new Map<string, T>()
 
-  constructor(private namespace: string) {
+  private isMiss?: (value: T) => boolean
+  private missRetryMs: number
+
+  constructor(
+    private namespace: string,
+    options: CacheOptions<T> = {},
+  ) {
     instances.add(this as JsonCache<unknown>)
+    const retry = options.retryMisses
+    if (retry) this.isMiss = retry.isMiss ?? ((v) => v === null)
+    this.missRetryMs = retry?.after ?? MISS_RETRY_MS
   }
 
   /**
@@ -65,7 +103,19 @@ export class JsonCache<T> {
     try {
       const raw = globalThis.localStorage?.getItem(this.storageKey(key))
       if (raw == null) return undefined
-      const value = JSON.parse(raw) as T
+      const parsed: unknown = JSON.parse(raw)
+      if (this.isMiss) {
+        if (isStoredMiss(parsed)) {
+          // An old miss: forget it, so the caller looks it up again.
+          if (Date.now() - parsed.missAt > this.missRetryMs) return undefined
+          const value = parsed.v as T
+          this.mem.set(key, value)
+          return value
+        }
+        // A miss from before misses were timestamped: retry it once.
+        if (this.isMiss(parsed as T)) return undefined
+      }
+      const value = parsed as T
       this.mem.set(key, value)
       return value
     } catch {
@@ -76,7 +126,8 @@ export class JsonCache<T> {
   set(key: string, value: T): void {
     this.mem.set(key, value)
     try {
-      globalThis.localStorage?.setItem(this.storageKey(key), JSON.stringify(value))
+      const stored: unknown = this.isMiss?.(value) ? { missAt: Date.now(), v: value } : value
+      globalThis.localStorage?.setItem(this.storageKey(key), JSON.stringify(stored))
     } catch {
       // Quota/availability errors are non-fatal — the in-memory copy still works.
     }

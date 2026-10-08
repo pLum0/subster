@@ -236,6 +236,8 @@ title, and ISRC** of candidate songs from your library to three public APIs:
 
 Nothing else leaves your device: no user identity, no server address, no listening history. All
 APIs are contacted over https, and every lookup is cached locally so repeat games re-send nothing.
+The one exception: a lookup that found nothing is asked again after about four months, in case the
+song has been added to MusicBrainz, Wikidata or Deezer since.
 If that tradeoff isn't for you, **Online metadata** in the game setup has three settings:
 
 - **Full** (default) — all three APIs, as described above.

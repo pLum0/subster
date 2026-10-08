@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { JsonCache } from './cache'
+import { JsonCache, MISS_RETRY_MS } from './cache'
 
 /** Minimal localStorage stand-in backed by a Map. */
 function fakeLocalStorage() {
@@ -17,6 +17,7 @@ function fakeLocalStorage() {
 
 afterEach(() => {
   vi.unstubAllGlobals()
+  vi.useRealTimers()
 })
 
 describe('JsonCache', () => {
@@ -97,5 +98,52 @@ describe('JsonCache', () => {
     expect(ls.getItem('subster.cache.gone-v1.a')).toBeNull()
     expect(ls.getItem('subster.cache.gone-v10.c')).toBe('3')
     expect(ls.getItem('subster.config')).toBe('{}')
+  })
+})
+
+describe('JsonCache retryMisses', () => {
+  const DAY = 24 * 60 * 60 * 1000
+
+  it('forgets a stored miss once it is older than the retry period', () => {
+    vi.stubGlobal('localStorage', fakeLocalStorage())
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-01-01'))
+    new JsonCache<number | null>('miss-a', { retryMisses: {} }).set('k', null)
+
+    // Fresh instances, so the answer has to come from localStorage.
+    vi.setSystemTime(Date.now() + MISS_RETRY_MS - DAY)
+    expect(new JsonCache<number | null>('miss-a', { retryMisses: {} }).get('k')).toBeNull()
+    vi.setSystemTime(Date.now() + 2 * DAY)
+    expect(new JsonCache<number | null>('miss-a', { retryMisses: {} }).get('k')).toBeUndefined()
+  })
+
+  it('keeps found answers forever and stores them bare', () => {
+    const ls = fakeLocalStorage()
+    vi.stubGlobal('localStorage', ls)
+    vi.useFakeTimers()
+    new JsonCache<number | null>('miss-b', { retryMisses: {} }).set('k', 1970)
+    expect(ls.getItem('subster.cache.miss-b.k')).toBe('1970')
+    vi.setSystemTime(Date.now() + 10 * MISS_RETRY_MS)
+    expect(new JsonCache<number | null>('miss-b', { retryMisses: {} }).get('k')).toBe(1970)
+  })
+
+  it('retries a miss stored before misses had a time', () => {
+    const ls = fakeLocalStorage()
+    vi.stubGlobal('localStorage', ls)
+    ls.setItem('subster.cache.miss-c.k', 'null')
+    expect(new JsonCache<number | null>('miss-c', { retryMisses: {} }).get('k')).toBeUndefined()
+    // Without the option, null stays a permanent miss as before.
+    expect(new JsonCache<number | null>('miss-c').get('k')).toBeNull()
+  })
+
+  it('uses a custom miss test and retry period', () => {
+    vi.stubGlobal('localStorage', fakeLocalStorage())
+    vi.useFakeTimers()
+    const opts = { retryMisses: { isMiss: (v: string[]) => v.length === 0, after: DAY } }
+    new JsonCache<string[]>('miss-d', opts).set('empty', [])
+    new JsonCache<string[]>('miss-d', opts).set('full', ['GBAYE0000941'])
+    vi.setSystemTime(Date.now() + 2 * DAY)
+    expect(new JsonCache<string[]>('miss-d', opts).get('empty')).toBeUndefined()
+    expect(new JsonCache<string[]>('miss-d', opts).get('full')).toEqual(['GBAYE0000941'])
   })
 })

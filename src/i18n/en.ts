@@ -51,7 +51,7 @@ export const en = {
     clearCaches: 'Clear metadata caches',
     cachesCleared: (n: number) => `✓ ${n} cached entries cleared`,
     clearCachesHint:
-      'Cached Deezer/MusicBrainz/Wikidata lookups never expire. Clear them when a wrong year or ranking has been fixed at the source — the next deck build re-fetches everything fresh. Server connection and settings are kept.',
+      'Cached Deezer/MusicBrainz/Wikidata answers never expire (only lookups that found nothing are retried after a few months). Clear them when a wrong year or ranking has been fixed at the source — the next deck build re-fetches everything fresh. Server connection and settings are kept.',
     canonTitle: 'Famous songs',
     canonRecommended: 'Recommended: find the famous songs on this server',
     findCanon: 'Find famous songs on this server',
